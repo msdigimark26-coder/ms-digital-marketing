@@ -1,0 +1,18 @@
+{
+    "short_name": "MS Digi",
+    "name": "MS Digital Marketing",
+    "description": "Award-winning digital marketing agency",
+    "icons": [
+        {
+            "src": "/favicon.png",
+            "type": "image/png",
+            "sizes": "512x512",
+            "purpose": "any maskable"
+        }
+    ],
+    "start_url": "/",
+    "display": "standalone",
+    "theme_color": "#A855F7",
+    "background_color": "#080314",
+    "orientation": "portrait-primary"
+}

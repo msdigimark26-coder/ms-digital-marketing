@@ -1,0 +1,24 @@
+<svg viewBox="0 0 1080 360" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <style>
+      .google-pay-g { fill: url(#googleGradient); }
+      .google-pay-text { font-family: 'Roboto', sans-serif; font-weight: 500; font-size: 140px; }
+    </style>
+    <linearGradient id="googleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#EA4335;stop-opacity:1" />
+      <stop offset="25%" style="stop-color:#FBBC04;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#34A853;stop-opacity:1" />
+      <stop offset="75%" style="stop-color:#4285F4;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Google G Logo -->
+  <g transform="translate(80, 50)">
+    <circle cx="60" cy="60" r="55" class="google-pay-g" opacity="0.2"/>
+    <path d="M 60 20 C 75 20 88 28 95 40 L 75 55 C 70 45 65 40 60 40 C 45 40 33 52 33 67 C 33 82 45 94 60 94 C 70 94 78 89 82 82 L 65 70 L 60 70 L 60 50 L 115 50 C 117 55 118 60 118 67 C 118 100 93 125 60 125 C 27 125 0 98 0 65 C 0 32 27 5 60 5 Z" class="google-pay-g"/>
+  </g>
+  
+  <!-- "Google Pay" Text -->
+  <text x="280" y="140" class="google-pay-text" fill="#4285F4">Google</text>
+  <text x="280" y="280" class="google-pay-text" fill="#34A853">Pay</text>
+</svg>

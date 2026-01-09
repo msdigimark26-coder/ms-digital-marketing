@@ -1,0 +1,284 @@
+import { Layout } from "@/components/layout/Layout";
+import { motion } from "framer-motion";
+import {
+    Film,
+    Camera,
+    Sparkles,
+    Layers,
+    Zap,
+    Palette,
+    Music,
+    Image as ImageIcon,
+    ArrowRight,
+    CheckCircle2,
+    Rocket,
+    Video,
+    Edit3
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+
+const deliverables = [
+    {
+        icon: Film,
+        title: "Video Production",
+        description: "Cinematic storytelling with professional editing, color grading, and motion graphics."
+    },
+    {
+        icon: Camera,
+        title: "Photo Retouching",
+        description: "Expert photo enhancement with advanced retouching techniques and color correction."
+    },
+    {
+        icon: Layers,
+        title: "Motion Graphics",
+        description: "Eye-catching animated graphics that bring your brand to life with dynamic visual effects."
+    },
+    {
+        icon: Music,
+        title: "Audio Mixing",
+        description: "Professional sound design, mixing, and mastering for crystal-clear audio quality."
+    },
+    {
+        icon: Palette,
+        title: "Color Grading",
+        description: "Cinematic color grading that enhances mood and creates visual consistency across projects."
+    },
+    {
+        icon: Sparkles,
+        title: "VFX & Compositing",
+        description: "Advanced visual effects and compositing for stunning, impossible-to-ignore content."
+    }
+];
+
+const processSteps = [
+    {
+        number: "01",
+        title: "Brief & Concept",
+        description: "Understanding your vision, brand, and creative requirements"
+    },
+    {
+        number: "02",
+        title: "Storyboarding",
+        description: "Planning shots, sequences, and visual direction"
+    },
+    {
+        number: "03",
+        title: "Production",
+        description: "Professional shooting or sourcing high-quality footage"
+    },
+    {
+        number: "04",
+        title: "Editing & VFX",
+        description: "Cutting, transitions, effects, and motion graphics"
+    },
+    {
+        number: "05",
+        title: "Delivery",
+        description: "Final output in multiple formats optimized for all platforms"
+    }
+];
+
+const VideoPhotoEditing = () => {
+    return (
+        <Layout>
+            {/* Hero Section */}
+            <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden pt-20">
+                <div className="absolute inset-0 bg-[#05030e]">
+                    {/* Grid Background */}
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+                    {/* Radial Gradient */}
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_800px_at_50%_50%,#ec48990a,transparent)]"></div>
+                </div>
+
+                <div className="container px-4 relative z-10">
+                    <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8 }}
+                        className="text-center max-w-5xl mx-auto"
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.2 }}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-pink-500/20 bg-pink-500/5 text-pink-400 text-sm font-medium mb-8"
+                        >
+                            <Video className="w-4 h-4" />
+                            Visual Content Creation
+                        </motion.div>
+
+                        <h1 className="font-display text-6xl md:text-8xl font-bold tracking-tight mb-8 leading-tight">
+                            Video & Photo <br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400 relative">
+                                Editing
+                                <div className="absolute -inset-1 blur-2xl bg-pink-500/20 -z-10 rounded-full"></div>
+                            </span>
+                        </h1>
+
+                        <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-12 font-light">
+                            Transform raw footage into captivating visual stories that engage audiences and amplify your brand's message.
+                        </p>
+
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+                            <Link to="/">
+                                <Button variant="outline" size="lg" className="border-pink-500/30 text-white hover:bg-pink-500/10 text-lg h-14 px-8 rounded-full font-medium transition-all group">
+                                    <ArrowRight className="mr-2 h-5 w-5 rotate-180 group-hover:-translate-x-1 transition-transform" /> Back to Home
+                                </Button>
+                            </Link>
+                            <Link to="/contact">
+                                <Button size="lg" className="bg-gradient-to-r from-pink-600 to-purple-600 text-white hover:opacity-90 text-lg h-14 px-8 rounded-full font-bold shadow-[0_0_20px_rgba(236,72,153,0.3)] hover:shadow-[0_0_30px_rgba(236,72,153,0.5)] transition-all">
+                                    Start Your Project <ArrowRight className="ml-2 h-5 w-5" />
+                                </Button>
+                            </Link>
+                            <div className="animate-bounce mt-8 sm:mt-0">
+                                <div className="w-6 h-10 border-2 border-slate-500 rounded-full flex justify-center p-1">
+                                    <div className="w-1 h-3 bg-pink-500 rounded-full animate-scroll"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* Deliverables Section */}
+            <section className="py-32 relative bg-[#070510]">
+                <div className="container px-4">
+                    <div className="text-center mb-24">
+                        <h2 className="font-display text-4xl md:text-5xl font-bold mb-6">
+                            What We <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400">Deliver</span>
+                        </h2>
+                        <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+                            Professional video and photo editing services that transform your visual content into cinematic masterpieces.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {deliverables.map((item, index) => (
+                            <motion.div
+                                key={index}
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.1 }}
+                                viewport={{ once: true }}
+                                className="group p-8 rounded-2xl bg-[#0f0a1f] border border-white/5 hover:border-pink-500/30 transition-all duration-300 hover:shadow-[0_0_30px_-10px_rgba(236,72,153,0.2)] relative overflow-hidden"
+                            >
+                                <div className="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-10 transition-opacity duration-500">
+                                    <item.icon className="w-24 h-24 text-pink-500" />
+                                </div>
+
+                                <div className="w-14 h-14 rounded-xl bg-pink-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                                    <item.icon className="w-7 h-7 text-pink-500" />
+                                </div>
+
+                                <h3 className="text-xl font-bold text-white mb-4">{item.title}</h3>
+                                <p className="text-slate-400 leading-relaxed font-light">
+                                    {item.description}
+                                </p>
+                            </motion.div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* Showcase Section - Visual Timeline */}
+            <section className="py-32 bg-[#05030e] relative overflow-hidden">
+                <div className="container px-4 relative z-10">
+                    <div className="text-center mb-24">
+                        <h2 className="font-display text-4xl md:text-5xl font-bold mb-6">
+                            Transform <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400">Raw to Remarkable</span>
+                        </h2>
+                        <p className="text-muted-foreground text-lg max-w-3xl mx-auto">
+                            From corporate videos and social media content to product photography and brand imagery—we bring your vision to life with precision and creativity.
+                        </p>
+                    </div>
+
+                    {/* Before/After Style Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-16">
+                        {[
+                            { title: "Social Media Content", metric: "10x Engagement" },
+                            { title: "Commercial Videos", metric: "300% ROI Increase" },
+                            { title: "Product Photography", metric: "50% More Sales" },
+                            { title: "Brand Campaigns", metric: "Viral Reach" }
+                        ].map((item, index) => (
+                            <motion.div
+                                key={index}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                whileInView={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: index * 0.1 }}
+                                viewport={{ once: true }}
+                                className="relative group"
+                            >
+                                <div className="aspect-video rounded-2xl bg-gradient-to-br from-pink-500/10 to-purple-500/10 border border-white/10 p-8 flex flex-col items-center justify-center hover:border-pink-500/30 transition-all">
+                                    <Edit3 className="w-12 h-12 text-pink-400 mb-4 group-hover:scale-110 transition-transform" />
+                                    <h3 className="text-xl font-bold text-white mb-2">{item.title}</h3>
+                                    <p className="text-pink-400 font-semibold">{item.metric}</p>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* Process Section */}
+            <section className="py-32 bg-[#070510] relative overflow-hidden">
+                <div className="container px-4 relative z-10">
+                    <div className="text-center mb-24">
+                        <h2 className="font-display text-4xl md:text-5xl font-bold mb-6">
+                            Our <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400">Process</span>
+                        </h2>
+                        <p className="text-muted-foreground text-lg">
+                            From concept to final cut—a streamlined workflow that delivers excellence.
+                        </p>
+                    </div>
+
+                    <div className="max-w-4xl mx-auto space-y-8 relative">
+                        {/* Connecting Line (Desktop) */}
+                        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/10 hidden md:block -translate-x-1/2"></div>
+
+                        {processSteps.map((step, index) => (
+                            <motion.div
+                                key={index}
+                                initial={{ opacity: 0, x: index % 2 === 0 ? -50 : 50 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.6, delay: index * 0.1 }}
+                                viewport={{ once: true }}
+                                className={`flex flex-col md:flex-row items-center gap-8 md:gap-0 ${index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'
+                                    }`}
+                            >
+                                {/* Text Side */}
+                                <div className={`flex-1 text-center md:text-left ${index % 2 === 0 ? 'md:pr-16 md:text-right' : 'md:pl-16'}`}>
+                                    <h3 className="text-2xl font-bold text-white mb-2">{step.title}</h3>
+                                    <p className="text-slate-400 font-light">{step.description}</p>
+                                </div>
+
+                                {/* Center Circle */}
+                                <div className="relative z-10 flex-shrink-0">
+                                    <div className="w-16 h-16 rounded-full bg-[#05030e] border-2 border-pink-500 flex items-center justify-center shadow-[0_0_20px_-5px_rgba(236,72,153,0.5)]">
+                                        <span className="text-pink-400 font-bold text-lg">{step.number}</span>
+                                    </div>
+                                </div>
+
+                                {/* Empty Side for spacing */}
+                                <div className="flex-1 hidden md:block"></div>
+                            </motion.div>
+                        ))}
+                    </div>
+
+                    <div className="text-center mt-24">
+                        <div className="inline-block p-1 rounded-full bg-gradient-to-r from-pink-500/50 to-purple-500/50">
+                            <Link to="/contact">
+                                <Button size="lg" className="bg-[#05030e] hover:bg-[#0f0a1f] text-white border border-transparent hover:border-pink-500/30 h-14 px-10 rounded-full text-lg font-medium transition-all group">
+                                    Start Creating <Rocket className="ml-2 w-5 h-5 text-pink-400 group-hover:translate-x-1 transition-transform" />
+                                </Button>
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </Layout>
+    );
+};
+
+export default VideoPhotoEditing;

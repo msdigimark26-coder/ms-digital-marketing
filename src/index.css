@@ -1,0 +1,246 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 260 25% 4%;
+    --foreground: 210 40% 98%;
+
+    --card: 260 25% 4%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 260 25% 4%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 263 70% 50%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 260 20% 15%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 260 20% 15%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 260 30% 20%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 260 20% 15%;
+    --input: 260 20% 15%;
+    --ring: 263 70% 50%;
+
+    --radius: 0.75rem;
+
+    --neon-purple: 267 100% 61%;
+    --neon-pink: 318 100% 61%;
+    --neon-blue: 217 100% 61%;
+    --neon-cyan: 190 100% 50%;
+    --neon-green: 142 70% 50%;
+
+    --glow-purple: 267 100% 61%;
+    --glow-blue: 217 100% 61%;
+
+    --glass: 260 25% 4% / 0.7;
+    --glass-border: 260 20% 15% / 0.5;
+
+    --sidebar-background: 260 25% 4%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 260 20% 15%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 260 20% 15%;
+    --sidebar-ring: 263 70% 50%;
+  }
+
+  .dark {
+    --background: 260 25% 4%;
+    --foreground: 210 40% 98%;
+
+    --card: 260 25% 4%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 260 25% 4%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 263 70% 50%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 260 20% 15%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 260 20% 15%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 260 30% 20%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 260 20% 15%;
+    --input: 260 20% 15%;
+    --ring: 263 70% 50%;
+
+    --sidebar-background: 260 25% 4%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display tracking-tight text-foreground;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-background/60 backdrop-blur-xl border border-white/10 shadow-lg;
+  }
+
+  .glass-card {
+    @apply bg-[#110C1D] border border-white/5 backdrop-blur-sm shadow-xl rounded-xl;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400;
+  }
+
+  .bg-gradient-primary {
+    @apply bg-gradient-to-r from-purple-600 to-pink-600 text-white;
+  }
+
+  .hover-glow {
+    transition: box-shadow 300ms;
+  }
+
+  .hover-glow:hover {
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-background;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-slate-700/50 rounded-full hover:bg-slate-600/70;
+  }
+
+  /* Utilities */
+  .animate-pulse-glow {
+    animation: pulse-glow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse-glow {
+
+    0%,
+    100% {
+      opacity: 0.2;
+      transform: scale(1);
+    }
+
+    50% {
+      opacity: 0.3;
+      transform: scale(1.1);
+    }
+  }
+}
+
+/* Content Protection */
+@layer utilities {
+
+  /* Disable text selection globally (except for inputs and forms) */
+  body {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* Allow selection in input fields and textareas */
+  input,
+  textarea,
+  [contenteditable="true"],
+  .allow-select {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+
+  /* Prevent image dragging and context menu */
+  img {
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    user-drag: none;
+    pointer-events: auto;
+  }
+
+  /* Prevent dragging for all media */
+  video,
+  audio,
+  canvas {
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    user-drag: none;
+  }
+
+  /* Prevent selection on specific elements */
+  a,
+  button {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+}
