@@ -59,12 +59,20 @@ if (!isConfigured) {
     console.warn('⚠️ SERVICES SUPABASE NOT CONFIGURED: Using mock client. Set VITE_SERVICES_SUPABASE_URL and VITE_SERVICES_SUPABASE_KEY in your .env file');
 }
 
-export const servicesSupabase = isConfigured
-    ? createClient(SERVICES_SUPABASE_URL, SERVICES_SUPABASE_KEY, {
-        auth: {
-            persistSession: false,
-        }
-    })
-    : createMockClient() as any;
+let client;
+try {
+    client = isConfigured
+        ? createClient(SERVICES_SUPABASE_URL, SERVICES_SUPABASE_KEY, {
+            auth: {
+                persistSession: false,
+            }
+        })
+        : createMockClient();
+} catch (error) {
+    console.error('Service Supabase init failed:', error);
+    client = createMockClient();
+}
+
+export const servicesSupabase = client as any;
 
 export const isServicesSupabaseConfigured = isConfigured;

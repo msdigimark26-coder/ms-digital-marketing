@@ -67,12 +67,20 @@ if (!isConfigured) {
   console.warn("⚠️ SUPABASE NOT CONFIGURED: Using mock client. Backend features like Login and Notifications won't work until you set your environment variables on Netlify.");
 }
 
-export const supabase = isConfigured
-  ? createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-    auth: {
-      storage: localStorage,
-      persistSession: true,
-      autoRefreshToken: true,
-    }
-  })
-  : createMockClient() as any;
+let client;
+try {
+  client = isConfigured
+    ? createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: {
+        storage: localStorage,
+        persistSession: true,
+        autoRefreshToken: true,
+      }
+    })
+    : createMockClient();
+} catch (error) {
+  console.error('Supabase init failed:', error);
+  client = createMockClient();
+}
+
+export const supabase = client as any;
