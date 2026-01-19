@@ -57,6 +57,11 @@ export const AssetsSection = () => {
             const file = e.target.files?.[0];
             if (!file) return;
 
+            if (file.size > 50 * 1024 * 1024) {
+                toast.error("File size should be less than 50MB");
+                return;
+            }
+
             setUploading(true);
             const fileExt = file.name.split('.').pop();
             const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
@@ -256,7 +261,7 @@ export const AssetsSection = () => {
                                                     <div className="text-sm font-medium text-slate-300">
                                                         {uploading ? "Uploading..." : "Click to upload cover"}
                                                     </div>
-                                                    <div className="text-xs text-slate-500 mt-1">PNG, JPG up to 5MB</div>
+                                                    <div className="text-xs text-slate-500 mt-1">PNG, JPG up to 50MB</div>
                                                 </>
                                             )}
                                         </div>

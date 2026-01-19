@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -135,7 +135,8 @@ export const DashboardSection = () => {
         return `${Math.floor(diffInSeconds / 86400)}d ago`;
     };
 
-    const StatCard = ({ stat, index }: any) => {
+    // Memoized StatCard to prevent unnecessary re-renders in the dashboard grid
+    const StatCard = React.memo(({ stat, index, editingStat, editForm, setEditForm, handleStatUpdate, setEditingStat }: any) => {
         const Icon = ICON_MAP[stat.icon_key] || Users;
         const isEditingThis = editingStat?.id === stat.id;
 
@@ -153,14 +154,14 @@ export const DashboardSection = () => {
                         </div>
                         <Input
                             value={editForm.value}
-                            onChange={e => setEditForm({ ...editForm, value: e.target.value })}
+                            onChange={e => setEditForm((prev: any) => ({ ...prev, value: e.target.value }))}
                             className="h-9 bg-black/20 border-white/10 font-bold text-lg text-white"
                             placeholder="Value"
                             autoFocus
                         />
                         <Input
                             value={editForm.label}
-                            onChange={e => setEditForm({ ...editForm, label: e.target.value })}
+                            onChange={e => setEditForm((prev: any) => ({ ...prev, label: e.target.value }))}
                             className="h-8 bg-black/20 border-white/10 text-xs text-slate-400"
                             placeholder="Label"
                         />
@@ -195,7 +196,9 @@ export const DashboardSection = () => {
                 )}
             </motion.div>
         );
-    };
+    });
+
+    StatCard.displayName = 'StatCard';
 
     if (loading && stats.length === 0) {
         return (
@@ -210,7 +213,16 @@ export const DashboardSection = () => {
             {/* Stats Header */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 {stats.length > 0 ? stats.map((stat, i) => (
-                    <StatCard key={stat.id} stat={stat} index={i} />
+                    <StatCard
+                        key={stat.id}
+                        stat={stat}
+                        index={i}
+                        editingStat={editingStat}
+                        editForm={editForm}
+                        setEditForm={setEditForm}
+                        handleStatUpdate={handleStatUpdate}
+                        setEditingStat={setEditingStat}
+                    />
                 )) : (
                     <div className="col-span-5 text-center text-slate-500 py-10 text-sm">No stats available</div>
                 )}

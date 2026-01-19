@@ -182,10 +182,15 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
                 setStatus("error");
                 const matchScore = Math.max(0, Math.round((1 - distance) * 100));
                 setStatusMessage(`Access Denied: Face mismatch (${matchScore}% match)`);
-                toast.error("Face does not match profile picture.");
+                toast.error("Face does not match profile picture. Switching to ID Scanner...");
 
                 // Log the failed attempt with the image
                 await uploadLogImage(currentImage, userId, 'failed');
+
+                // Auto-trigger ID Scanner fallback via parent's onClose
+                setTimeout(() => {
+                    onClose();
+                }, 2000);
             }
 
         } catch (error) {

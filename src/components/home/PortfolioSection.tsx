@@ -1,9 +1,12 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { ArrowRight, ExternalLink, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { servicesSupabase as supabase, isServicesSupabaseConfigured } from "@/integrations/supabase/servicesClient";
 
-const projects = [
+// Fallback data for when Supabase is not configured yet
+const FALLBACK_PROJECTS = [
   {
     title: "TechVision Rebrand",
     category: "Branding & UI/UX",
@@ -34,12 +37,58 @@ const projects = [
   },
 ];
 
+const CATEGORY_LABELS: Record<string, string> = {
+  "branding": "Branding",
+  "web-design": "Web Design",
+  "social-media": "Social Media",
+  "3d-modeling": "3D Modeling",
+  "video-editing": "Video Editing"
+};
+
 export const PortfolioSection = () => {
+  const [projects, setProjects] = useState<any[]>(FALLBACK_PROJECTS);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      if (!isServicesSupabaseConfigured) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("portfolio_projects")
+          .select("*")
+          .eq("is_featured", true)
+          .eq("is_active", true)
+          .order("order_index", { ascending: true })
+          .limit(4);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          setProjects(data.map(p => ({
+            ...p,
+            image: p.image_url,
+            category: CATEGORY_LABELS[p.category] || p.category // Fallback to raw slug if no map
+          })));
+        }
+      } catch (error) {
+        console.error("Error fetching featured portfolio:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
+
   return (
     <section className="py-32 relative overflow-hidden bg-background">
       {/* Background Decorative Elements */}
-      <div className="absolute top-[20%] right-0 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-[10%] left-[-10%] w-[400px] h-[400px] bg-blue-600/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-[20%] right-0 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[60px] pointer-events-none" />
+      <div className="absolute bottom-[10%] left-[-10%] w-[400px] h-[400px] bg-blue-600/10 rounded-full blur-[60px] pointer-events-none" />
 
       <div className="container mx-auto px-4 relative z-10">
         {/* Section Header */}
@@ -85,7 +134,7 @@ export const PortfolioSection = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
           {projects.map((project, index) => (
             <motion.div
-              key={project.title}
+              key={project.id || project.title}
               initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -98,20 +147,22 @@ export const PortfolioSection = () => {
                 <img
                   src={project.image}
                   alt={project.title}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 will-change-[transform]"
                 />
 
                 {/* Search/Link Icon Overlay */}
-                <div className="absolute top-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg">
-                    <ArrowUpRight className="h-6 w-6 text-black" />
+                <a href={project.project_url || "#"} target="_blank" rel="noopener noreferrer" className="absolute inset-0 z-20">
+                  <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg">
+                      <ArrowUpRight className="h-6 w-6 text-black" />
+                    </div>
                   </div>
-                </div>
+                </a>
               </div>
 
               <div className="space-y-4">
                 <div className="flex flex-wrap gap-2">
-                  {project.tags.map((tag, i) => (
+                  {project.tags && project.tags.map((tag: string, i: number) => (
                     <span key={i} className="px-3 py-1 rounded-full border border-white/10 text-xs text-slate-400 uppercase tracking-wider bg-white/[0.02]">
                       {tag}
                     </span>
@@ -122,7 +173,7 @@ export const PortfolioSection = () => {
                   {project.title}
                 </h3>
 
-                <p className="text-slate-400 leading-relaxed max-w-md">
+                <p className="text-slate-400 leading-relaxed max-w-md line-clamp-2">
                   {project.description}
                 </p>
               </div>

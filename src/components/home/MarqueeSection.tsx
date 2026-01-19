@@ -13,7 +13,7 @@ export const MarqueeSection = () => {
   ];
 
   const ClientLogo = ({ client }: { client: typeof clients[0] }) => (
-    <div className="flex items-center justify-center h-24 px-8 py-4 bg-muted/50 rounded-lg backdrop-blur-sm border border-border/20 hover:border-primary/50 transition-all duration-300 flex-shrink-0 min-w-max">
+    <div className="flex items-center justify-center h-24 px-8 py-4 bg-muted/40 rounded-xl border border-border/10 hover:border-primary/50 transition-all duration-300 flex-shrink-0 min-w-max">
       <span className="text-sm font-semibold text-muted-foreground group-hover:text-primary transition-colors">
         {client.name}
       </span>

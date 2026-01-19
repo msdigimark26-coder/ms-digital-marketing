@@ -38,10 +38,10 @@ const CEO = () => {
         >
           <div className="w-full max-w-md">
             <CEOCard
-              name="Sai Sankeet"
+              name="Sai Sankara"
               avatarUrl="/Team Members 2/1.png"
               miniAvatarUrl="/Team Members 2/1.png"
-              handle="sai_sankeet"
+              handle="sai_sankara"
               status="Available"
               contactText="Schedule Meeting"
               onContactClick={handleCEOContact}
@@ -71,10 +71,10 @@ const CEO = () => {
           className="mt-20 max-w-4xl mx-auto px-4"
         >
           <div className="bg-gray-800/50 backdrop-blur border border-gray-700 rounded-2xl p-8 md:p-12">
-            <h2 className="text-3xl font-bold text-white mb-6">About Sai Sankeet</h2>
+            <h2 className="text-3xl font-bold text-white mb-6">About Sai Sankara</h2>
             <div className="space-y-4 text-gray-300 leading-relaxed">
               <p>
-                As Chief Executive Officer, Sai Sankeet brings over a decade of experience in digital transformation and strategic business development. His vision has positioned our organization as a leader in digital marketing innovation.
+                As Chief Executive Officer, Sai Sankara brings over a decade of experience in digital transformation and strategic business development. His vision has positioned our organization as a leader in digital marketing innovation.
               </p>
               <p>
                 With expertise spanning across SEO, Content Marketing, Social Media Strategy, and Paid Advertising, Sai leads our team with a data-driven approach to delivering exceptional results for our clients.

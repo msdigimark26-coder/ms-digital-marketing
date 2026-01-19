@@ -121,15 +121,26 @@
 
 @layer components {
   .glass {
-    @apply bg-background/60 backdrop-blur-xl border border-white/10 shadow-lg;
+    @apply bg-background/60 border border-white/10 shadow-lg;
+    backdrop-filter: blur(12px);
+    /* Reduced from xl (24px) to 12px for better performance */
+    -webkit-backdrop-filter: blur(12px);
+    transform: translateZ(0);
+    /* Hardware acceleration hint */
   }
 
   .glass-card {
-    @apply bg-[#110C1D] border border-white/5 backdrop-blur-sm shadow-xl rounded-xl;
+    @apply bg-[#110C1D] border border-white/5 shadow-xl rounded-xl;
+    backdrop-filter: blur(4px);
+    /* Minimal blur for cards to save GPU cycles */
+    -webkit-backdrop-filter: blur(4px);
+    transform: translateZ(0);
   }
 
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400;
+    will-change: filter;
+    /* Hint for text gradient rendering */
   }
 
   .bg-gradient-primary {
@@ -137,11 +148,13 @@
   }
 
   .hover-glow {
-    transition: box-shadow 300ms;
+    transition: transform 300ms ease, box-shadow 300ms ease;
+    will-change: transform, box-shadow;
   }
 
   .hover-glow:hover {
-    box-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px -10px rgba(168, 85, 247, 0.4);
   }
 
   /* Custom Scrollbar */
@@ -242,5 +255,13 @@
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+  }
+
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+
+  .vertical-text {
+    writing-mode: vertical-rl;
   }
 }

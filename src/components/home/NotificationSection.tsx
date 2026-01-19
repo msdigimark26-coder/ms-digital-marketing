@@ -37,16 +37,24 @@ export const NotificationSection = () => {
 
             if (error) throw error;
 
-            const dismissedIds = JSON.parse(localStorage.getItem("msdigimark_dismissed_notifications_v2") || "[]");
+            const dismissedStore = JSON.parse(localStorage.getItem("msdigimark_dismissed_notifications_v3") || "{}");
 
             const filtered = (data || [])
-                .filter(n => !dismissedIds.includes(n.id))
+                .filter(n => {
+                    const lastDismissedAt = dismissedStore[n.id];
+                    if (!lastDismissedAt) return true;
+
+                    // If the notification has been updated since last dismissal, show it again
+                    const updatedAt = n.updated_at ? new Date(n.updated_at).getTime() : 0;
+                    return updatedAt > lastDismissedAt;
+                })
                 .map(n => ({
                     id: n.id,
                     title: n.title,
                     message: n.message,
                     image: n.image || undefined,
-                    timestamp: n.created_at ? new Date(n.created_at).getTime() : Date.now()
+                    timestamp: n.updated_at ? new Date(n.updated_at).getTime() : (n.created_at ? new Date(n.created_at).getTime() : Date.now()),
+                    updatedAt: n.updated_at ? new Date(n.updated_at).getTime() : 0
                 }));
 
             setNotifications(filtered);
@@ -105,9 +113,10 @@ export const NotificationSection = () => {
 
     const dismiss = (e: React.MouseEvent) => {
         e.stopPropagation();
-        const dismissedIds = JSON.parse(localStorage.getItem("msdigimark_dismissed_notifications_v2") || "[]");
-        dismissedIds.push(currentNotif.id);
-        localStorage.setItem("msdigimark_dismissed_notifications_v2", JSON.stringify(dismissedIds));
+        const dismissedStore = JSON.parse(localStorage.getItem("msdigimark_dismissed_notifications_v3") || "{}");
+        // Store the current update time so we know when it was dismissed
+        dismissedStore[currentNotif.id] = Date.now();
+        localStorage.setItem("msdigimark_dismissed_notifications_v3", JSON.stringify(dismissedStore));
 
         const updated = notifications.filter(n => n.id !== currentNotif.id);
         setNotifications(updated);
@@ -130,70 +139,101 @@ export const NotificationSection = () => {
         });
     };
 
+    const formatRelativeTime = (timestamp: number) => {
+        const diff = Date.now() - timestamp;
+        const minutes = Math.floor(diff / 60000);
+        if (minutes < 1) return 'just now';
+        if (minutes < 60) return `${minutes}m ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours}h ago`;
+        return new Date(timestamp).toLocaleDateString();
+    };
+
     return (
         <>
-            <div className="fixed bottom-24 right-4 z-[9999] max-w-sm w-full pointer-events-none">
+            <div className="fixed bottom-[130px] md:bottom-24 left-4 right-4 md:left-auto md:right-4 z-[9999] max-w-[320px] md:max-w-[380px] ml-auto mr-auto md:mr-0 pointer-events-none">
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={currentNotif.id}
-                        initial={{ opacity: 0, x: 50, scale: 0.9 }}
-                        animate={{ opacity: 1, x: 0, scale: 1 }}
-                        exit={{ opacity: 0, x: 50, scale: 0.9 }}
+                        initial={{ opacity: 0, y: 40, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9, y: 20, transition: { duration: 0.2 } }}
                         onClick={handleViewDetails}
-                        className="bg-[#1a1625] p-4 relative overflow-hidden group border border-white/10 rounded-xl shadow-lg pointer-events-auto cursor-pointer hover:border-purple-500/50 transition-all active:scale-[0.98]"
+                        className="relative group pointer-events-auto cursor-pointer will-change-[transform,opacity]"
                     >
-                        {/* Control Buttons Container */}
-                        <div className="absolute top-2 right-2 flex items-center gap-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                                onClick={toggleMute}
-                                className="p-1 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-                            >
-                                {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
-                            </button>
-                            <button
-                                onClick={dismiss}
-                                className="p-1 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-                            >
-                                <X className="h-3 w-3" />
-                            </button>
-                        </div>
+                        {/* Premium Glass Container */}
+                        <div className="relative overflow-hidden bg-[#0d0d15]/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-3 md:p-5 transition-all duration-300 hover:border-purple-500/30 active:scale-[0.98]">
 
-                        <div className="flex gap-4">
-                            {currentNotif.image && (
-                                <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 border border-white/10 bg-black/20">
-                                    <img
-                                        src={currentNotif.image}
-                                        alt="Notification"
-                                        className="w-full h-full object-cover"
+                            {/* Inner Glow Effect */}
+                            <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none" />
+
+                            {/* Control Buttons Container */}
+                            <div className="absolute top-2 right-2 flex items-center gap-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                    onClick={toggleMute}
+                                    className="p-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all"
+                                >
+                                    {isMuted ? <VolumeX className="h-3 w-3 md:h-3.5 md:w-3.5" /> : <Volume2 className="h-3 w-3 md:h-3.5 md:w-3.5" />}
+                                </button>
+                                <button
+                                    onClick={dismiss}
+                                    className="p-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all"
+                                >
+                                    <X className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                                </button>
+                            </div>
+
+                            <div className="flex gap-3 md:gap-5">
+                                {/* Glowing Icon Container */}
+                                <div className="relative flex-shrink-0">
+                                    <div className="w-11 h-11 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-600/20 flex items-center justify-center border border-white/10 relative z-10 overflow-hidden group-hover:scale-105 transition-transform duration-500">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-purple-500 opacity-20" />
+                                        {currentNotif.image ? (
+                                            <img src={currentNotif.image} alt="" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <Bell className="h-5 w-5 md:h-7 md:w-7 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
+                                        )}
+                                    </div>
+                                    {/* Pulse Ring */}
+                                    <div className="absolute -inset-1 bg-gradient-to-br from-blue-400 to-purple-500 rounded-xl md:rounded-2xl blur-md opacity-20 animate-pulse" />
+                                </div>
+
+                                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                    <div className="mb-0.5">
+                                        <h4 className="text-sm md:text-base font-bold bg-gradient-to-r from-blue-400 to-purple-300 bg-clip-text text-transparent truncate">
+                                            {currentNotif.title}
+                                        </h4>
+                                    </div>
+
+                                    <p className="text-[11px] md:text-sm text-slate-300 line-clamp-2 leading-tight">
+                                        {currentNotif.message}
+                                    </p>
+
+                                    <div className="mt-1 md:mt-2 flex items-center justify-between">
+                                        <div className="flex items-center gap-1 text-[9px] md:text-[10px] text-purple-400 font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <span>Read update</span>
+                                            <ExternalLink className="h-2 w-2 md:h-2.5 md:w-2.5" />
+                                        </div>
+                                        <span className="text-[9px] text-slate-500 font-medium">
+                                            {formatRelativeTime(currentNotif.timestamp)}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Progress bar at the bottom */}
+                            {notifications.length > 1 && !isDetailsOpen && (
+                                <div className="absolute bottom-0 left-0 h-[3px] bg-white/5 w-full overflow-hidden">
+                                    <motion.div
+                                        key={`progress-${currentNotif.id}`}
+                                        initial={{ x: "-100%" }}
+                                        animate={{ x: "0%" }}
+                                        transition={{ duration: 5, ease: "linear" }}
+                                        className="h-full bg-gradient-to-r from-blue-500 to-purple-500"
                                     />
                                 </div>
                             )}
-                            <div className="flex-1 min-w-0 pr-6">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <Bell className="h-3.5 w-3.5 text-purple-400" />
-                                    <h4 className="font-semibold text-sm text-white truncate">{currentNotif.title}</h4>
-                                </div>
-                                <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
-                                    {currentNotif.message}
-                                </p>
-                                <div className="mt-2 flex items-center gap-1 text-[10px] text-purple-400 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <span>Read more</span>
-                                    <ExternalLink className="h-2.5 w-2.5" />
-                                </div>
-                            </div>
                         </div>
-
-                        {notifications.length > 1 && !isDetailsOpen && (
-                            <div className="absolute bottom-0 left-0 h-0.5 bg-white/10 w-full overflow-hidden rounded-b-xl">
-                                <motion.div
-                                    key={`progress-${currentNotif.id}`}
-                                    initial={{ x: "-100%" }}
-                                    animate={{ x: "0%" }}
-                                    transition={{ duration: 5, ease: "linear" }}
-                                    className="h-full bg-purple-500"
-                                />
-                            </div>
-                        )}
                     </motion.div>
                 </AnimatePresence>
             </div>

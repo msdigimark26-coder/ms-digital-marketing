@@ -35,39 +35,11 @@ interface Notification {
 }
 
 const LogoImage = () => {
-	const sources = [
-		"/MS Favicon_01.png",
-		"/MS Png favicon.png",
-		"/Favicon .png",
-		"/MS DIGIMARK LOGO .png",
-		"/MS DIGIMARK LOGO.png",
-		"/logo-left.png",
-		"/ms-digimark-logo.png",
-		"/favicon.png",
-	];
-	const [index, setIndex] = useState<number>(0);
-	const fallbackSvg =
-		"data:image/svg+xml;utf8," +
-		encodeURIComponent(
-			`<?xml version='1.0' encoding='utf-8'?><svg xmlns='http://www.w3.org/2000/svg' width='160' height='40' viewBox='0 0 160 40' role='img' aria-label='MS Digi Mark'><rect width='100%' height='100%' fill='transparent'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='Poppins, Arial, sans-serif' font-size='14' fill='%23ffffff'>MS DIGI MARK</text></svg>`
-		);
-
-	const src = index < sources.length ? sources[index] : fallbackSvg;
-	const srcSet =
-		index < sources.length
-			? `${sources[index]} 1x, ${sources[index].replace(
-				/(\.png|\.jpg|\.jpeg)$/i,
-				"@2x$1"
-			)} 2x`
-			: undefined;
-
 	return (
 		<img
-			src={src}
-			srcSet={srcSet}
+			src="/favicon.png"
 			alt="MS Digi Mark"
 			className="h-6 md:h-8 lg:h-10 w-auto object-contain"
-			onError={() => setIndex((i) => i + 1)}
 			decoding="async"
 			loading="eager"
 			role="img"
@@ -94,16 +66,23 @@ export const Header = () => {
 
 			if (error) throw error;
 
-			const dismissedIds = JSON.parse(localStorage.getItem("msdigimark_dismissed_notifications") || "[]");
+			const dismissedStore = JSON.parse(localStorage.getItem("msdigimark_dismissed_notifications_v3") || "{}");
 
 			const filtered = (data || [])
-				.filter(n => !dismissedIds.includes(n.id))
+				.filter(n => {
+					const lastDismissedAt = dismissedStore[n.id];
+					if (!lastDismissedAt) return true;
+
+					// If updated since last dismissal, show again
+					const updatedAt = n.updated_at ? new Date(n.updated_at).getTime() : 0;
+					return updatedAt > lastDismissedAt;
+				})
 				.map(n => ({
 					id: n.id,
 					title: n.title,
 					message: n.message,
 					image: n.image || undefined,
-					timestamp: n.created_at ? new Date(n.created_at).getTime() : Date.now()
+					timestamp: n.updated_at ? new Date(n.updated_at).getTime() : (n.created_at ? new Date(n.created_at).getTime() : Date.now())
 				}));
 
 			setNotifications(filtered);
@@ -113,10 +92,17 @@ export const Header = () => {
 	};
 
 	useEffect(() => {
+		let ticking = false;
 		const handleScroll = () => {
-			setScrolled(window.scrollY > 50);
+			if (!ticking) {
+				window.requestAnimationFrame(() => {
+					setScrolled(window.scrollY > 50);
+					ticking = false;
+				});
+				ticking = true;
+			}
 		};
-		window.addEventListener("scroll", handleScroll);
+		window.addEventListener("scroll", handleScroll, { passive: true });
 
 		loadNotifications();
 
@@ -134,9 +120,9 @@ export const Header = () => {
 	}, []);
 
 	const clearNotification = (id: string) => {
-		const dismissedIds = JSON.parse(localStorage.getItem("msdigimark_dismissed_notifications") || "[]");
-		dismissedIds.push(id);
-		localStorage.setItem("msdigimark_dismissed_notifications", JSON.stringify(dismissedIds));
+		const dismissedStore = JSON.parse(localStorage.getItem("msdigimark_dismissed_notifications_v3") || "{}");
+		dismissedStore[id] = Date.now();
+		localStorage.setItem("msdigimark_dismissed_notifications_v3", JSON.stringify(dismissedStore));
 
 		const updated = notifications.filter(n => n.id !== id);
 		setNotifications(updated);

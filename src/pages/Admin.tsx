@@ -23,16 +23,21 @@ import {
     EyeOff,
     Menu,
     X,
-    Package
+    Package,
+    Video,
+    IdCard
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { FaceAuthModal } from "@/components/admin/auth/FaceAuthModal";
+import { IDScannerModal } from "@/components/admin/auth/IDScannerModal";
 import { DashboardSection } from "@/components/admin/DashboardSection";
 import { SettingsSection } from "@/components/admin/SettingsSection";
 import { LeadsSection } from "@/components/admin/LeadsSection";
 import { PortfolioSection } from "@/components/admin/PortfolioSection";
+import { PortfolioFrontSection } from "@/components/admin/PortfolioFrontSection";
 import { ServicesSection } from "@/components/admin/ServicesSection";
+import { ServicesShowcaseSection } from "@/components/admin/ServicesShowcaseSection";
 import { TestimonialsSection } from "@/components/admin/TestimonialsSection";
 import { NotificationsSection } from "@/components/admin/NotificationsSection";
 import { BookingsSection } from "@/components/admin/BookingsSection";
@@ -40,8 +45,10 @@ import { PaymentsSection } from "@/components/admin/PaymentsSection";
 import { MessagesSection } from "@/components/admin/MessagesSection";
 import { AuditLogsSection } from "@/components/admin/AuditLogsSection";
 import { AssetsSection } from "@/components/admin/AssetsSection";
-
-
+import { ReelsSection } from "@/components/admin/ReelsSection";
+import { EmployeesSection } from "@/components/admin/EmployeesSection";
+import { IDCardsSection } from "@/components/admin/IDCardsSection";
+import { IDCardSidebar, IDCardModal } from "@/components/admin/IDCard";
 
 const Admin = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -50,12 +57,14 @@ const Admin = () => {
     const [activeTab, setActiveTab] = useState("dashboard");
     const [isLoading, setIsLoading] = useState(false);
     const [showFaceAuth, setShowFaceAuth] = useState(false);
+    const [showIDScanner, setShowIDScanner] = useState(false);
     const [pendingUser, setPendingUser] = useState<any>(null);
     // Track current session log ID
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(sessionStorage.getItem("ms-admin-session-id"));
     const [showPassword, setShowPassword] = useState(false);
     const [showIntro, setShowIntro] = useState(true);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [showIDCard, setShowIDCard] = useState(false);
 
     const playAlertSound = () => {
         try {
@@ -89,12 +98,34 @@ const Admin = () => {
             setShowIntro(false);
         }, 2200);
 
-        const checkSession = () => {
+        const checkSession = async () => {
             const session = sessionStorage.getItem("ms-admin-session");
             if (session) {
-                const user = JSON.parse(session);
-                setIsLoggedIn(true);
-                setCurrentUser(user);
+                const sessionUser = JSON.parse(session);
+
+                // Fetch fresh data for the user to ensure roles/ID info are correct
+                try {
+                    const { data, error } = await supabase
+                        .from("portal_users")
+                        .select("*")
+                        .eq("id", sessionUser.id)
+                        .single();
+
+                    if (data && !error) {
+                        setIsLoggedIn(true);
+                        setCurrentUser(data);
+                        sessionStorage.setItem("ms-admin-session", JSON.stringify(data));
+                    } else {
+                        // If user doesn't exist anymore or error, clear session
+                        setIsLoggedIn(false);
+                        setCurrentUser(null);
+                        sessionStorage.removeItem("ms-admin-session");
+                    }
+                } catch (err) {
+                    // Fallback to session data if fetch fails
+                    setIsLoggedIn(true);
+                    setCurrentUser(sessionUser);
+                }
             }
         };
 
@@ -111,9 +142,48 @@ const Admin = () => {
         };
     }, []);
 
+    // Auto-popup ID card for 15 seconds on login
+    useEffect(() => {
+        if (isLoggedIn && currentUser && currentUser.id_card_status === 'Active') {
+            // Check if we've already shown it in this session to avoid annoying the user on tab switches
+            const hasShownPopup = sessionStorage.getItem(`id-popup-shown-${currentUser.id}`);
+            if (!hasShownPopup) {
+                setShowIDCard(true);
+                sessionStorage.setItem(`id-popup-shown-${currentUser.id}`, 'true');
+                const popupTimer = setTimeout(() => {
+                    setShowIDCard(false);
+                }, 15000);
+                return () => clearTimeout(popupTimer);
+            }
+        }
+    }, [isLoggedIn, currentUser?.id, currentUser?.id_card_status]);
+
+    // Refresh current user data if changed in DB (Realtime)
+    useEffect(() => {
+        if (!isLoggedIn || !currentUser?.id) return;
+
+        const channel = supabase
+            .channel(`user-updates-${currentUser.id}`)
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'portal_users', filter: `id=eq.${currentUser.id}` },
+                (payload) => {
+                    console.log("Current user updated in DB, syncing state:", payload.new);
+                    setCurrentUser(payload.new);
+                    sessionStorage.setItem("ms-admin-session", JSON.stringify(payload.new));
+                    toast.info("Your profile information has been updated.");
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [isLoggedIn, currentUser?.id]);
+
     // Monitor for failed login attempts (Security Alert)
     useEffect(() => {
-        if (!isLoggedIn || !currentUser || !['super_admin', 'superadmin'].includes(currentUser.role)) return;
+        if (!isLoggedIn || !currentUser || !['super_admin', 'superadmin', 'Administrator', 'administrator'].includes(currentUser.role)) return;
 
         const channel = supabase
             .channel('security_alerts')
@@ -163,7 +233,7 @@ const Admin = () => {
 
             if (data && !error) {
                 // Check user role
-                if (['super_admin', 'superadmin'].includes(data.role)) {
+                if (['super_admin', 'superadmin', 'Administrator', 'administrator'].includes(data.role)) {
                     // BYPASS FACE AUTH FOR SUPER ADMIN
                     setIsLoggedIn(true);
                     setCurrentUser(data);
@@ -380,8 +450,7 @@ const Admin = () => {
                         isOpen={showFaceAuth}
                         onClose={() => {
                             setShowFaceAuth(false);
-                            setPendingUser(null);
-                            setIsLoading(false);
+                            setShowIDScanner(true);
                         }}
                         onSuccess={(imageUrl, logId) => {
                             setShowFaceAuth(false);
@@ -398,7 +467,45 @@ const Admin = () => {
                         adminImage={pendingUser?.avatar_url}
                         userId={pendingUser?.id}
                     />
+
+                    <IDScannerModal
+                        isOpen={showIDScanner}
+                        onClose={() => {
+                            setShowIDScanner(false);
+                            setPendingUser(null);
+                            setIsLoading(false);
+                        }}
+                        onSuccess={(userData) => {
+                            setIsLoggedIn(true);
+                            setCurrentUser(userData);
+                            sessionStorage.setItem("ms-admin-session", JSON.stringify(userData));
+                            toast.success(`Welcome back ${userData.username} (ID Verified)`);
+                            setShowIDScanner(false);
+                            setPendingUser(null);
+                        }}
+                        userId={pendingUser?.id}
+                    />
                 </motion.div>
+            </div>
+        );
+    }
+
+    if (!isLoggedIn && showIDScanner) {
+        return (
+            <div className="min-h-screen bg-[#070510] flex items-center justify-center p-4">
+                <IDScannerModal
+                    isOpen={showIDScanner}
+                    onClose={() => setShowIDScanner(false)}
+                    onSuccess={(userData) => {
+                        setIsLoggedIn(true);
+                        setCurrentUser(userData);
+                        sessionStorage.setItem("ms-admin-session", JSON.stringify(userData));
+                        toast.success(`Welcome back ${userData.username} (ID Verified)`);
+                        setShowIDScanner(false);
+                        setPendingUser(null);
+                    }}
+                    userId={pendingUser?.id}
+                />
             </div>
         );
     }
@@ -407,16 +514,23 @@ const Admin = () => {
         { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
         { id: "notifications", label: "Notifications", icon: Bell },
         { id: "leads", label: "Leads", icon: Users },
-        { id: "portfolio", label: "Portfolio", icon: Briefcase },
+        { id: "portfolio", label: "Project Tracker", icon: Briefcase },
+        { id: "portfolio-front", label: "Portfolio Front", icon: ImageIcon },
         { id: "testimonials", label: "Testimonials", icon: MessageSquare },
-        { id: "services", label: "Services", icon: Layers },
+        { id: "services", label: "Services Old", icon: Layers },
+        { id: "services-showcase", label: "Services Showcase", icon: Monitor },
         { id: "bookings", label: "Bookings", icon: Calendar },
         { id: "payments", label: "Payments", icon: CreditCard },
         { id: "assets", label: "Assets", icon: Package },
+        { id: "reels", label: "Reels", icon: Video },
         { id: "messages", label: "Messages", icon: MessageSquare },
         { id: "settings", label: "Settings", icon: Settings },
-        // Only show Audit Log if super admin
-        ...(['super_admin', 'superadmin'].includes(currentUser?.role) ? [{ id: "audit", label: "Audit Logs", icon: Shield }] : []),
+        // Management sections for Super Admin
+        ...(['super_admin', 'superadmin', 'Administrator', 'administrator'].includes(currentUser?.role) ? [
+            { id: "team", label: "Team", icon: Users },
+            { id: "id-cards", label: "ID Cards", icon: IdCard },
+            { id: "audit", label: "Audit Logs", icon: Shield }
+        ] : []),
     ];
 
     return (
@@ -431,19 +545,19 @@ const Admin = () => {
 
             {/* Sidebar */}
             <aside className={`w-64 bg-[#0B0816] border-r border-white/5 flex flex-col fixed inset-y-0 left-0 z-30 transition-transform duration-300 ease-in-out md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                <div className="p-6 relative">
+                <div className="p-6 relative flex-1 flex flex-col overflow-hidden">
                     <button
                         onClick={() => setIsMobileMenuOpen(false)}
                         className="absolute right-4 top-6 md:hidden text-slate-400 hover:text-white transition-colors"
                     >
                         <X className="h-5 w-5" />
                     </button>
-                    <div className="flex items-center gap-3 mb-8 px-2">
+                    <div className="flex items-center gap-3 mb-8 px-2 shrink-0">
                         <img src="/favicon.png" alt="Logo" className="h-8 w-8 rounded-lg object-contain bg-white/5 p-1 ring-1 ring-white/10 shadow-sm" />
                         <div className="font-semibold text-lg text-white tracking-tight">Portal</div>
                     </div>
 
-                    <nav className="space-y-1">
+                    <nav className="space-y-1 overflow-y-auto flex-1 pr-2 custom-scrollbar">
                         {menuItems.map(item => (
                             <button
                                 key={item.id}
@@ -466,31 +580,46 @@ const Admin = () => {
                     </nav>
                 </div>
 
-                <div className="mt-auto p-6 border-t border-white/5">
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/5 mb-3">
-                        {currentUser?.avatar_url ? (
-                            <img
-                                src={currentUser.avatar_url}
-                                alt={currentUser.username}
-                                className="h-8 w-8 rounded-full object-cover ring-1 ring-white/10"
-                            />
-                        ) : (
-                            <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center font-bold text-[10px] text-white ring-1 ring-white/10">
-                                {currentUser?.username?.substring(0, 2).toUpperCase() || "AD"}
-                            </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                            <div className="text-xs font-semibold text-white truncate">{currentUser?.username || "Admin"}</div>
-                            <div className="text-[10px] text-muted-foreground truncate font-medium">Administrator</div>
-                        </div>
-                    </div>
+                <div className="mt-auto border-t border-white/5 px-4 py-6 space-y-6 bg-black/20 shrink-0">
                     <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors group font-medium text-xs"
+                        onClick={() => setShowIDCard(true)}
+                        className="w-full flex items-center gap-3 px-4 py-3 bg-white/5 border border-white/5 hover:border-white/10 hover:bg-white/10 rounded-xl transition-all group relative overflow-hidden"
                     >
-                        <LogOut className="h-4 w-4" />
-                        <span>Sign Out</span>
+                        <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <IdCard className="h-5 w-5 text-slate-400 group-hover:text-purple-400 transition-colors" />
+                        <span className="text-sm font-bold text-slate-500 group-hover:text-white transition-colors uppercase tracking-tight">Access ID</span>
+                        <div className="ml-auto w-1.5 h-1.5 rounded-full bg-green-500 group-hover:animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
                     </button>
+
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3 p-2 rounded-xl bg-white/[0.02] border border-white/5">
+                            {currentUser?.avatar_url ? (
+                                <img
+                                    src={currentUser.avatar_url}
+                                    alt={currentUser.username}
+                                    className="h-10 w-10 rounded-lg object-cover ring-1 ring-white/10 shadow-lg"
+                                />
+                            ) : (
+                                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center font-bold text-xs text-white ring-1 ring-white/10">
+                                    {currentUser?.username?.substring(0, 2).toUpperCase() || "AD"}
+                                </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                                <div className="text-sm font-bold text-white truncate leading-none mb-1">{currentUser?.username || "Admin"}</div>
+                                <div className="flex items-center gap-1.5">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                                    <div className="text-[10px] text-slate-500 uppercase font-black tracking-widest leading-none">Root</div>
+                                </div>
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleLogout}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all group font-bold text-sm border border-transparent hover:border-rose-500/20"
+                        >
+                            <LogOut className="h-5 w-5 group-hover:scale-110 transition-transform" />
+                            <span>Sign Out</span>
+                        </button>
+                    </div>
                 </div>
             </aside>
 
@@ -584,6 +713,18 @@ const Admin = () => {
                             </motion.div>
                         )}
 
+                        {activeTab === "portfolio-front" && (
+                            <motion.div
+                                key="portfolio-front"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <PortfolioFrontSection />
+                            </motion.div>
+                        )}
+
                         {activeTab === "testimonials" && (
                             <motion.div
                                 key="testimonials"
@@ -605,6 +746,18 @@ const Admin = () => {
                                 transition={{ duration: 0.2 }}
                             >
                                 <ServicesSection />
+                            </motion.div>
+                        )}
+
+                        {activeTab === "services-showcase" && (
+                            <motion.div
+                                key="services-showcase"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <ServicesShowcaseSection />
                             </motion.div>
                         )}
 
@@ -656,8 +809,6 @@ const Admin = () => {
                             </motion.div>
                         )}
 
-
-
                         {activeTab === "messages" && (
                             <motion.div
                                 key="messages"
@@ -670,7 +821,7 @@ const Admin = () => {
                             </motion.div>
                         )}
 
-                        {activeTab === "audit" && ['super_admin', 'superadmin'].includes(currentUser?.role) && (
+                        {activeTab === "audit" && ['super_admin', 'superadmin', 'Administrator', 'administrator'].includes(currentUser?.role) && (
                             <motion.div
                                 key="audit"
                                 initial={{ opacity: 0, y: 10 }}
@@ -694,8 +845,44 @@ const Admin = () => {
                             </motion.div>
                         )}
 
+                        {activeTab === "reels" && (
+                            <motion.div
+                                key="reels"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <ReelsSection />
+                            </motion.div>
+                        )}
+
+                        {activeTab === "team" && (
+                            <motion.div
+                                key="team"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <EmployeesSection />
+                            </motion.div>
+                        )}
+
+                        {activeTab === "id-cards" && (
+                            <motion.div
+                                key="id-cards"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <IDCardsSection />
+                            </motion.div>
+                        )}
+
                         {/* Fallback for other tabs until implemented */}
-                        {!["dashboard", "leads", "portfolio", "testimonials", "services", "settings", "notifications", "bookings", "payments", "messages", "audit", "assets"].includes(activeTab) && (
+                        {!["dashboard", "leads", "portfolio", "portfolio-front", "testimonials", "services", "services-showcase", "settings", "notifications", "bookings", "payments", "messages", "audit", "assets", "reels", "team", "id-cards"].includes(activeTab) && (
                             <motion.div
                                 key="placeholder"
                                 initial={{ opacity: 0 }}
@@ -710,9 +897,14 @@ const Admin = () => {
                     </AnimatePresence>
                 </div>
             </main>
+
+            <IDCardModal
+                isOpen={showIDCard}
+                onClose={() => setShowIDCard(false)}
+                user={currentUser}
+            />
         </div>
     );
 };
 
 export default Admin;
-

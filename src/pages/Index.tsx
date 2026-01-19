@@ -7,6 +7,7 @@ import { WhyUsSection } from "@/components/home/WhyUsSection";
 import { CTASection } from "@/components/home/CTASection";
 import { NotificationSection } from "@/components/home/NotificationSection";
 import { Button } from '@/components/ui/button';
+import { ReelPopup } from "@/components/home/ReelPopup";
 
 const BookQuickCallButton = () => (
   <div className="fixed bottom-4 left-4">

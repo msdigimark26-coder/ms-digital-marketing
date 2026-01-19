@@ -46,6 +46,11 @@ export const TestimonialsSection = () => {
             const file = e.target.files?.[0];
             if (!file) return;
 
+            if (file.size > 50 * 1024 * 1024) {
+                toast.error("File size should be less than 50MB");
+                return;
+            }
+
             setUploading(true);
             const fileExt = file.name.split('.').pop();
             const fileName = `${Math.random()}.${fileExt}`;

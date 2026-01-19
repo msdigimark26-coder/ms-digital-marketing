@@ -8,10 +8,10 @@ export const CTASection = () => {
     <section className="py-24 relative overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-neon-purple/10 via-background to-neon-blue/10" />
-      
+
       {/* Animated orbs */}
       <motion.div
-        animate={{ 
+        animate={{
           x: [0, 100, 0],
           y: [0, -50, 0],
         }}
@@ -19,7 +19,7 @@ export const CTASection = () => {
         className="absolute top-1/4 left-1/4 w-64 h-64 bg-neon-purple/20 rounded-full blur-[100px]"
       />
       <motion.div
-        animate={{ 
+        animate={{
           x: [0, -100, 0],
           y: [0, 50, 0],
         }}
@@ -50,15 +50,15 @@ export const CTASection = () => {
 
           {/* Description */}
           <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
-            Ready to transform your digital presence? Let's discuss how we can 
+            Ready to transform your digital presence? Let's discuss how we can
             help you achieve your goals and exceed your expectations.
           </p>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link to="/contact">
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="bg-gradient-primary hover:opacity-90 transition-all hover-glow text-lg px-8 group"
               >
                 Get Free Consultation
@@ -66,9 +66,9 @@ export const CTASection = () => {
               </Button>
             </Link>
             <Link to="/portfolio">
-              <Button 
-                size="lg" 
-                variant="outline" 
+              <Button
+                size="lg"
+                variant="outline"
                 className="border-primary/50 hover:border-primary text-lg px-8"
               >
                 View Our Work

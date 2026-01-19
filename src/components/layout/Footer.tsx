@@ -176,8 +176,8 @@ export const Footer = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-16 pt-8 border-t border-border/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative">
-          <div className="flex flex-col md:flex-row gap-6 flex-1">
+        <div className="mt-16 pt-8 border-t border-border/50 flex flex-col md:flex-row justify-between items-center md:items-center gap-8 relative">
+          <div className="flex flex-col md:flex-row gap-6 flex-1 items-center md:items-start text-center md:text-left">
             <p className="text-muted-foreground text-sm">
               © 2026 MS DIGI MARK. All rights reserved.
             </p>
@@ -188,13 +188,10 @@ export const Footer = () => {
               <Link to="/terms-of-service" className="hover:text-primary transition-colors">
                 Terms of Service
               </Link>
-              <Link to="/terms-conditions" className="hover:text-primary transition-colors">
-                Terms & Conditions
-              </Link>
             </div>
           </div>
-          {/* Clock in bottom right */}
-          <div className="ml-auto">
+          {/* Clock in bottom right on desktop, center on mobile */}
+          <div className="w-full md:w-auto flex justify-center md:justify-end">
             <Clock />
           </div>
         </div>

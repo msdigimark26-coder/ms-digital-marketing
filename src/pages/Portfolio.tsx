@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUpRight, Filter, Sparkles, Layers, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { servicesSupabase as supabase, isServicesSupabaseConfigured } from "@/integrations/supabase/servicesClient";
 
 // Type definition for projects
 interface Project {
@@ -17,9 +18,15 @@ interface Project {
   color: string;
 }
 
-const categories = ["All", "Branding", "Web Design", "Social Media", "3D Modeling", "Video Editing"];
+const CATEGORY_MAP: Record<string, { label: string; color: string }> = {
+  "branding": { label: "Branding", color: "from-pink-500 to-rose-500" },
+  "web-design": { label: "Web Design", color: "from-blue-500 to-cyan-500" },
+  "social-media": { label: "Social Media", color: "from-purple-500 to-pink-500" },
+  "3d-modeling": { label: "3D Modeling", color: "from-orange-500 to-red-500" },
+  "video-editing": { label: "Video Editing", color: "from-green-500 to-emerald-500" },
+};
 
-const projects: Project[] = [
+const FALLBACK_PROJECTS: Project[] = [
   {
     id: "1",
     title: "TechVision Rebrand",
@@ -27,7 +34,7 @@ const projects: Project[] = [
     image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800",
     description: "Complete visual identity overhaul for a leading AI startup.",
     tags: ["Logo", "Identity", "Guidelines"],
-    color: "from-purple-500 to-blue-500"
+    color: "from-pink-500 to-rose-500"
   },
   {
     id: "2",
@@ -36,7 +43,7 @@ const projects: Project[] = [
     image: "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800",
     description: "Viral sustainability campaign reaching 2M+ organic impressions.",
     tags: ["Strategy", "Content", "Viral"],
-    color: "from-green-400 to-emerald-600"
+    color: "from-purple-500 to-pink-500"
   },
   {
     id: "3",
@@ -45,7 +52,7 @@ const projects: Project[] = [
     image: "https://images.unsplash.com/photo-1633356122102-3fe601e05bd2?w=800",
     description: "Photorealistic product visualizations for pre-launch marketing.",
     tags: ["Blender", "Product", "Animation"],
-    color: "from-orange-400 to-red-500"
+    color: "from-orange-500 to-red-500"
   },
   {
     id: "4",
@@ -54,31 +61,60 @@ const projects: Project[] = [
     image: "https://images.unsplash.com/photo-1547658719-da2b51169166?w=800",
     description: "Award-winning immersive website experience for a digital artist.",
     tags: ["React", "WebGL", "UX"],
-    color: "from-pink-500 to-rose-500"
-  },
-  {
-    id: "5",
-    title: "Future Finance App",
-    category: "Web Design",
-    image: "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=800",
-    description: "Clean, intuitive dashboard design for a fintech platform.",
-    tags: ["UI/UX", "Fintech", "Mobile"],
     color: "from-blue-500 to-cyan-500"
-  },
-  {
-    id: "6",
-    title: "Neon Nights",
-    category: "Video Editing",
-    image: "https://images.unsplash.com/photo-1535498730771-e735b998cd64?w=800",
-    description: "High-energy promotional video for a cyberpunk event.",
-    tags: ["After Effects", "Rhythm", "Color Grading"],
-    color: "from-fuchsia-500 to-purple-600"
   },
 ];
 
 const Portfolio = () => {
   const [activeCategory, setActiveCategory] = useState("All");
   const [hoveredProject, setHoveredProject] = useState<string | null>(null);
+  const [projects, setProjects] = useState<Project[]>(FALLBACK_PROJECTS);
+  const [loading, setLoading] = useState(true);
+
+  // Generate filter categories from map (and ensure they are unique/ordered if needed)
+  const categories = ["All", ...Object.values(CATEGORY_MAP).map(c => c.label)];
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      if (!isServicesSupabaseConfigured) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("portfolio_projects")
+          .select("*")
+          .eq("is_active", true)
+          .order("order_index", { ascending: true });
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          const mappedProjects: Project[] = data.map(p => {
+            const catInfo = CATEGORY_MAP[p.category] || { label: p.category, color: "from-gray-500 to-slate-500" };
+            return {
+              id: p.id,
+              title: p.title,
+              category: catInfo.label,
+              description: p.description,
+              image: p.image_url,
+              tags: p.tags || [],
+              link: p.project_url,
+              color: catInfo.color // Map color from category
+            };
+          });
+          setProjects(mappedProjects);
+        }
+      } catch (error) {
+        console.error("Error fetching portfolio projects:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
 
   const filteredProjects = projects.filter(p =>
     activeCategory === "All" || p.category === activeCategory
@@ -168,33 +204,35 @@ const Portfolio = () => {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-300" />
 
                       {/* Content Overlay */}
-                      <div className="absolute inset-0 p-6 flex flex-col justify-end translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                        <div className="mb-auto flex justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">
-                          <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20">
-                            <ArrowUpRight className="h-5 w-5 text-white" />
+                      <a href={project.link || "#"} target="_blank" rel="noopener noreferrer" className="absolute inset-0 z-20">
+                        <div className="absolute inset-0 p-6 flex flex-col justify-end translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                          <div className="mb-auto flex justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">
+                            <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 hover:bg-white/30 transition-colors">
+                              <ArrowUpRight className="h-5 w-5 text-white" />
+                            </div>
+                          </div>
+
+                          <div className="relative">
+                            <div className={`h-1 w-12 mb-4 rounded-full bg-gradient-to-r ${project.color}`} />
+                            <span className="text-xs font-bold uppercase tracking-wider text-white/70 mb-2 block">
+                              {project.category}
+                            </span>
+                            <h3 className="text-2xl font-bold text-white mb-2">{project.title}</h3>
+                            <p className="text-slate-300 text-sm line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 h-0 group-hover:h-auto overflow-hidden">
+                              {project.description}
+                            </p>
+
+                            {/* Tags */}
+                            <div className="flex gap-2 mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75 transform translate-y-4 group-hover:translate-y-0">
+                              {project.tags.map(tag => (
+                                <span key={tag} className="text-[10px] px-2 py-1 rounded bg-white/10 text-white border border-white/10 backdrop-blur-sm">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         </div>
-
-                        <div className="relative">
-                          <div className={`h-1 w-12 mb-4 rounded-full bg-gradient-to-r ${project.color}`} />
-                          <span className="text-xs font-bold uppercase tracking-wider text-white/70 mb-2 block">
-                            {project.category}
-                          </span>
-                          <h3 className="text-2xl font-bold text-white mb-2">{project.title}</h3>
-                          <p className="text-slate-300 text-sm line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 h-0 group-hover:h-auto overflow-hidden">
-                            {project.description}
-                          </p>
-
-                          {/* Tags */}
-                          <div className="flex gap-2 mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75 transform translate-y-4 group-hover:translate-y-0">
-                            {project.tags.map(tag => (
-                              <span key={tag} className="text-[10px] px-2 py-1 rounded bg-white/10 text-white border border-white/10 backdrop-blur-sm">
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
+                      </a>
                     </div>
                   </motion.div>
                 ))}

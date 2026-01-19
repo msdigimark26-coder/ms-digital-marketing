@@ -147,9 +147,9 @@ export const Clock = () => {
           --color-dial-base: #060201;
           --color-dial-highlight: #D3DADE;
           --dim-max-width: 150px;
-          --dim-min-width: 150px;
+          --dim-min-width: 100px;
           --font-size-numerals: min(5vw, 10px);
-          --dim-clock-size: min(var(--dim-max-width), var(--dim-min-width));
+          --dim-clock-size: clamp(var(--dim-min-width), 25vw, var(--dim-max-width));
           --dim-numerals-offset: calc(var(--dim-clock-size) * -0.415);
           --dim-dash-offset: calc(var(--dim-clock-size) * -0.462);
           --dim-dash-size: calc(var(--dim-clock-size) * 0.023);
@@ -173,6 +173,7 @@ export const Clock = () => {
           position: relative;
           aspect-ratio: 1;
           width: var(--dim-clock-size);
+          margin: 0 auto;
           border-radius: 50%;
           background-image: linear-gradient(to bottom right, var(--color-bg-top-left), var(--color-bg-bottom-right) 60%);
           border: 2px solid var(--color-bg-bottom-right);

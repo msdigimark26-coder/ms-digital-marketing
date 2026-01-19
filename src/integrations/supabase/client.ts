@@ -8,57 +8,71 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY |
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-// Create a mock client if environment variables are not set
-const createMockClient = () => ({
-  auth: {
-    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-    getSession: () => Promise.resolve({ data: { session: null } }),
-    signInWithPassword: () => Promise.resolve({ error: new Error('Supabase not configured') }),
-    signUp: () => Promise.resolve({ error: new Error('Supabase not configured') }),
-    signOut: () => Promise.resolve(),
-    getUser: () => Promise.resolve({ data: { user: null } }),
-  },
-  from: () => ({
-    select: () => ({
-      eq: () => ({
-        single: () => Promise.resolve({ data: null, error: null }),
-        then: () => Promise.resolve({ data: [], error: null })
-      }),
-      then: () => Promise.resolve({ data: [], error: null })
-    }),
-    insert: () => ({
-      select: () => ({
-        single: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-        then: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') })
-      })
-    }),
-    update: () => ({
-      eq: () => ({
-        select: () => ({
-          single: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-          then: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') })
-        })
-      })
-    }),
-    delete: () => ({
-      eq: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') })
-    })
-  }),
-  storage: {
-    from: () => ({
-      upload: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-      getPublicUrl: () => ({ data: { publicUrl: '' } }),
-      remove: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') })
-    })
-  }
-});
+// Create a more robust mock client if environment variables are not set
+const createMockClient = () => {
+  const mockDeduction: any = {
+    eq: () => mockDeduction,
+    select: () => mockDeduction,
+    order: () => mockDeduction,
+    limit: () => mockDeduction,
+    single: () => mockDeduction,
+    insert: () => mockDeduction,
+    update: () => mockDeduction,
+    delete: () => mockDeduction,
+    or: () => mockDeduction,
+    match: () => mockDeduction,
+    in: () => mockDeduction,
+    contains: () => mockDeduction,
+    range: () => mockDeduction,
+    then: (resolve: any) => resolve({ data: [], error: null }),
+    catch: (reject: any) => {
+      if (typeof reject === 'function') return reject(new Error('Supabase not configured'));
+      return mockDeduction;
+    },
+  };
 
-export const supabase = (SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY && SUPABASE_URL !== 'https://placeholder.supabase.co') 
+  return {
+    auth: {
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => { } } } }),
+      getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+      signInWithPassword: () => Promise.resolve({ data: { user: null, session: null }, error: new Error('Supabase not configured') }),
+      signUp: () => Promise.resolve({ data: { user: null, session: null }, error: new Error('Supabase not configured') }),
+      signOut: () => Promise.resolve({ error: null }),
+      getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+    },
+    from: () => mockDeduction,
+    channel: () => ({
+      on: () => ({
+        subscribe: () => ({
+          unsubscribe: () => { }
+        })
+      }),
+      subscribe: () => ({
+        unsubscribe: () => { }
+      })
+    }),
+    storage: {
+      from: () => ({
+        upload: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
+        getPublicUrl: () => ({ data: { publicUrl: '' } }),
+        remove: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') })
+      })
+    }
+  };
+};
+
+const isConfigured = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY && SUPABASE_URL !== 'https://placeholder.supabase.co');
+
+if (!isConfigured) {
+  console.warn("⚠️ SUPABASE NOT CONFIGURED: Using mock client. Backend features like Login and Notifications won't work until you set your environment variables on Netlify.");
+}
+
+export const supabase = isConfigured
   ? createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-      auth: {
-        storage: localStorage,
-        persistSession: true,
-        autoRefreshToken: true,
-      }
-    })
+    auth: {
+      storage: localStorage,
+      persistSession: true,
+      autoRefreshToken: true,
+    }
+  })
   : createMockClient() as any;

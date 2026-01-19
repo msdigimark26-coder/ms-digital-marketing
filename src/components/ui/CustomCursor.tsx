@@ -24,21 +24,23 @@ export const CustomCursor = () => {
 
     const handleMouseOver = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
+      if (!target) return;
+
       const isClickable =
         target.tagName === "A" ||
         target.tagName === "BUTTON" ||
         target.closest("a") ||
         target.closest("button") ||
-        target.classList.contains("cursor-pointer") ||
-        window.getComputedStyle(target).cursor === "pointer";
+        target.classList.contains("cursor-pointer");
+
       setIsPointer(!!isClickable);
     };
 
     const handleMouseLeave = () => setIsHidden(true);
     const handleMouseEnter = () => setIsHidden(false);
 
-    window.addEventListener("mousemove", moveCursor);
-    window.addEventListener("mouseover", handleMouseOver);
+    window.addEventListener("mousemove", moveCursor, { passive: true });
+    window.addEventListener("mouseover", handleMouseOver, { passive: true });
     document.body.addEventListener("mouseleave", handleMouseLeave);
     document.body.addEventListener("mouseenter", handleMouseEnter);
 
@@ -55,9 +57,8 @@ export const CustomCursor = () => {
 
   return (
     <>
-      {/* Main cursor dot */}
       <motion.div
-        className="fixed top-0 left-0 pointer-events-none z-[9999] mix-blend-difference"
+        className="fixed top-0 left-0 pointer-events-none z-[9999] mix-blend-difference will-change-[transform]"
         style={{
           x: cursorX,
           y: cursorY,
@@ -77,7 +78,7 @@ export const CustomCursor = () => {
 
       {/* Outer ring */}
       <motion.div
-        className="fixed top-0 left-0 pointer-events-none z-[9998]"
+        className="fixed top-0 left-0 pointer-events-none z-[9998] will-change-[transform]"
         style={{
           x: cursorX,
           y: cursorY,
