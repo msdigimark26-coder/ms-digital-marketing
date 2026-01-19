@@ -147,7 +147,10 @@ export const PortfolioSection = () => {
                 <img
                   src={project.image}
                   alt={project.title}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 will-change-[transform]"
+                  loading="lazy"
+                  width={800}
+                  height={600}
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 will-change-transform"
                 />
 
                 {/* Search/Link Icon Overlay */}

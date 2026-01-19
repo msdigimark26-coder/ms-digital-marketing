@@ -123,24 +123,30 @@
   .glass {
     @apply bg-background/60 border border-white/10 shadow-lg;
     backdrop-filter: blur(12px);
-    /* Reduced from xl (24px) to 12px for better performance */
     -webkit-backdrop-filter: blur(12px);
     transform: translateZ(0);
     /* Hardware acceleration hint */
+    will-change: backdrop-filter;
+  }
+
+  @media (max-width: 768px) {
+    .glass {
+      backdrop-filter: blur(8px);
+      /* Reduce blur on mobile */
+      -webkit-backdrop-filter: blur(8px);
+    }
   }
 
   .glass-card {
     @apply bg-[#110C1D] border border-white/5 shadow-xl rounded-xl;
     backdrop-filter: blur(4px);
-    /* Minimal blur for cards to save GPU cycles */
     -webkit-backdrop-filter: blur(4px);
     transform: translateZ(0);
+    will-change: transform;
   }
 
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400;
-    will-change: filter;
-    /* Hint for text gradient rendering */
   }
 
   .bg-gradient-primary {
@@ -186,6 +192,7 @@
   /* Utilities */
   .animate-pulse-glow {
     animation: pulse-glow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    will-change: transform, opacity;
   }
 
   @keyframes pulse-glow {
