@@ -57,7 +57,9 @@ const createMockClient = () => {
         getPublicUrl: () => ({ data: { publicUrl: '' } }),
         remove: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') })
       })
-    }
+    },
+    removeChannel: () => Promise.resolve(),
+    removeAllChannels: () => Promise.resolve(),
   };
 };
 
