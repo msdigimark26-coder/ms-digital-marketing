@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { CustomCursor } from "@/components/ui/CustomCursor";
 import { Suspense, lazy } from "react";
 import { ReelPopup } from "@/components/home/ReelPopup";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -53,27 +54,29 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/services" element={<Services />} />
-              <Route path="/services/web-design" element={<WebDesign />} />
-              <Route path="/services/seo-services" element={<SEOServices />} />
-              <Route path="/services/meta-ads" element={<MetaAds />} />
-              <Route path="/services/google-ads" element={<GoogleAds />} />
-              <Route path="/services/video-photo-editing" element={<VideoPhotoEditing />} />
-              <Route path="/services/3d-modeling" element={<ThreeDModeling />} />
-              <Route path="/portfolio" element={<Portfolio />} />
-              <Route path="/testimonials" element={<Testimonials />} />
-              <Route path="/ceo" element={<CEO />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/payments" element={<Payments />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/terms-of-service" element={<TermsOfService />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <ErrorBoundary>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/services" element={<Services />} />
+                <Route path="/services/web-design" element={<WebDesign />} />
+                <Route path="/services/seo-services" element={<SEOServices />} />
+                <Route path="/services/meta-ads" element={<MetaAds />} />
+                <Route path="/services/google-ads" element={<GoogleAds />} />
+                <Route path="/services/video-photo-editing" element={<VideoPhotoEditing />} />
+                <Route path="/services/3d-modeling" element={<ThreeDModeling />} />
+                <Route path="/portfolio" element={<Portfolio />} />
+                <Route path="/testimonials" element={<Testimonials />} />
+                <Route path="/ceo" element={<CEO />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/payments" element={<Payments />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/terms-of-service" element={<TermsOfService />} />
+                <Route path="/admin" element={<Admin />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </ErrorBoundary>
             <ReelPopup />
           </Suspense>
         </AuthProvider>
