@@ -49,6 +49,8 @@ import { ReelsSection } from "@/components/admin/ReelsSection";
 import { EmployeesSection } from "@/components/admin/EmployeesSection";
 import { IDCardsSection } from "@/components/admin/IDCardsSection";
 import { IDCardSidebar, IDCardModal } from "@/components/admin/IDCard";
+import { isServicesSupabaseConfigured, servicesSupabase } from "@/integrations/supabase/servicesClient";
+import { AlertCircle } from "lucide-react";
 
 const Admin = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -65,6 +67,36 @@ const Admin = () => {
     const [showIntro, setShowIntro] = useState(true);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [showIDCard, setShowIDCard] = useState(false);
+    const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error' | 'mock'>('checking');
+    const [connectionError, setConnectionError] = useState<string>("");
+
+    useEffect(() => {
+        const checkConnection = async () => {
+            if (!isLoggedIn) return;
+
+            // Check if client is configured with URL
+            if (!isServicesSupabaseConfigured) {
+                setConnectionStatus('mock');
+                return;
+            }
+
+            try {
+                // Try a lightweight query to verify connectivity
+                const { error } = await servicesSupabase.from('services_showcase').select('id').limit(1);
+
+                if (error) {
+                    throw error;
+                }
+                setConnectionStatus('connected');
+            } catch (err: any) {
+                console.error("DB Connection Check Failed:", err);
+                setConnectionStatus('error');
+                setConnectionError(err.message || "Failed to fetch from services_showcase");
+            }
+        };
+
+        checkConnection();
+    }, [isLoggedIn]);
 
     const playAlertSound = () => {
         try {
@@ -625,7 +657,30 @@ const Admin = () => {
 
             {/* Main Content Area */}
             <main className="flex-1 md:ml-64 bg-[#070510] min-h-screen transition-all duration-300 flex flex-col">
+
+                {/* DIAGNOSTIC BANNER */}
+                {isLoggedIn && connectionStatus === 'mock' && (
+                    <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-3 flex items-center justify-center gap-3 text-amber-200 text-sm font-medium animate-in slide-in-from-top-2">
+                        <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
+                        <div className="flex flex-col md:flex-row md:items-center gap-1">
+                            <span>Started in <strong>Offline Mode</strong>. Real data is hidden because Env Vars are missing/invalid.</span>
+                            <span className="opacity-70 text-xs md:ml-2">Fix VITE_SERVICES_SUPABASE_URL in Netlify.</span>
+                        </div>
+                    </div>
+                )}
+
+                {isLoggedIn && connectionStatus === 'error' && (
+                    <div className="bg-red-500/10 border-b border-red-500/20 px-4 py-3 flex items-center justify-center gap-3 text-red-200 text-sm font-medium animate-in slide-in-from-top-2">
+                        <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />
+                        <div>
+                            <span className="font-bold">Database Connection Error:</span> {connectionError}
+                            <div className="text-xs opacity-70 mt-0.5">Check CORS settings in Supabase or URL format in Netlify.</div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Header */}
+
                 <header className="h-16 px-4 md:px-6 border-b border-white/5 flex items-center justify-between sticky top-0 z-20 bg-[#070510]/95 backdrop-blur-sm">
                     <div className="flex items-center gap-3 md:gap-4">
                         <button
