@@ -121,12 +121,11 @@
 
 @layer components {
   .glass {
-    @apply bg-background/60 border border-white/10 shadow-lg;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    @apply bg-background/60 border border-white/10;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     transform: translateZ(0);
-    /* Hardware acceleration hint */
-    will-change: backdrop-filter;
+    will-change: transform;
   }
 
   @media (max-width: 768px) {
@@ -138,11 +137,12 @@
   }
 
   .glass-card {
-    @apply bg-[#110C1D] border border-white/5 shadow-xl rounded-xl;
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    @apply bg-[#110C1D] border border-white/5 rounded-xl;
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
     transform: translateZ(0);
     will-change: transform;
+    contain: content;
   }
 
   .text-gradient {
@@ -160,7 +160,7 @@
 
   .hover-glow:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 20px -10px rgba(168, 85, 247, 0.4);
+    box-shadow: 0 8px 15px -8px rgba(168, 85, 247, 0.3);
   }
 
   /* Custom Scrollbar */
@@ -240,7 +240,6 @@
     -khtml-user-drag: none;
     -moz-user-drag: none;
     -o-user-drag: none;
-    user-drag: none;
     pointer-events: auto;
   }
 
@@ -252,7 +251,6 @@
     -khtml-user-drag: none;
     -moz-user-drag: none;
     -o-user-drag: none;
-    user-drag: none;
   }
 
   /* Prevent selection on specific elements */

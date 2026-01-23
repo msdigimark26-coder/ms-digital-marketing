@@ -111,7 +111,7 @@ const Contact = () => {
                       </div>
                       <div>
                         <div className="font-semibold text-white mb-1">Our Location</div>
-                        <div className="text-slate-400">Trichy, India</div>
+                        <div className="text-slate-400">DURAIRAJ THEVAR STREET, Kochadai, Madurai - 625016</div>
                       </div>
                     </div>
                   </div>
@@ -129,7 +129,7 @@ const Contact = () => {
                       Get expert advice on your digital strategy. No commitment required.
                     </p>
                     <Button
-                      onClick={() => window.open('https://topmate.io/ms_digimark/1868704', '_blank')}
+                      onClick={() => window.location.href = '/book-appointment'}
                       className="w-full bg-white text-black hover:bg-slate-200 font-bold h-12 rounded-xl"
                     >
                       Schedule Consultation <ArrowRight className="ml-2 h-4 w-4" />

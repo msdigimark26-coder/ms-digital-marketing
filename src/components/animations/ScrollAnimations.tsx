@@ -1,4 +1,4 @@
-import { motion, useInView, useReducedMotion } from "framer-motion";
+import { motion, useInView, useReducedMotion, Variants } from "framer-motion";
 import { useRef, ReactNode } from "react";
 
 interface AnimatedSectionProps {
@@ -133,7 +133,7 @@ export const StaggerContainer = ({ children, className = "", staggerDelay = 0.1 
             staggerChildren: staggerDelay,
           },
         },
-      }}
+      } as Variants}
       className={className}
     >
       {children}
@@ -147,7 +147,7 @@ export const StaggerItem = ({ children, className = "" }: { children: ReactNode;
       variants={{
         hidden: { opacity: 0, y: 30 },
         visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
-      }}
+      } as Variants}
       className={className}
     >
       {children}

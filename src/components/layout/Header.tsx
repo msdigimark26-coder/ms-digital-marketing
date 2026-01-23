@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, LogOut, CreditCard, Bell, ChevronDown } from "lucide-react";
+import { Menu, X, LogOut, CreditCard, Bell, ChevronDown, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 
 const navLinks = [
 	{ name: "Home", path: "/" },
-	{ name: "About", path: "/about" },
+	{ name: "About Us", path: "/about" },
 	{
 		name: "Services",
 		path: "/services",
@@ -18,11 +18,16 @@ const navLinks = [
 			{ name: "Meta Ads", path: "/services/meta-ads" },
 			{ name: "Google Ads", path: "/services/google-ads" },
 			{ name: "Video & Photo Editing", path: "/services/video-photo-editing" },
-			{ name: "3D Modeling", path: "/services/3d-modeling" }
+			{ name: "3D Modeling", path: "/services/3d-modeling" },
+			{ name: "Social Media Marketing", path: "/services/social-media-marketing" },
+			{ name: "PPC & Paid Advertising", path: "/services/ppc-paid-advertising" },
+			{ name: "UI/UX Design", path: "/services/uiux-design" }
 		]
 	},
 	{ name: "Portfolio", path: "/portfolio" },
 	{ name: "Testimonials", path: "/testimonials" },
+	{ name: "Blog", path: "/blog" },
+	{ name: "Careers", path: "/careers" },
 	{ name: "Contact", path: "/contact" },
 ];
 
@@ -39,7 +44,7 @@ const LogoImage = () => {
 		<img
 			src="/favicon.png"
 			alt="MS Digi Mark"
-			className="h-6 md:h-8 lg:h-10 w-auto object-contain"
+			className="h-5 md:h-7 lg:h-8 w-auto object-contain"
 			decoding="async"
 			loading="eager"
 			role="img"
@@ -137,7 +142,7 @@ export const Header = () => {
 				}`}
 		>
 			<div className="container mx-auto px-4">
-				<nav className="flex items-center justify-center gap-12 relative">
+				<nav className="flex items-center justify-center gap-8 relative">
 					{/* Logo - positioned left */}
 					<Link to="/" className="flex items-center gap-2 group absolute left-0">
 						<motion.div
@@ -156,7 +161,7 @@ export const Header = () => {
 							<div key={link.path} className="relative group">
 								<Link to={link.path} className="flex items-center gap-1 py-4">
 									<span
-										className={`text-sm font-medium transition-colors duration-300 ${location.pathname === link.path || (link.subLinks && location.pathname.startsWith(link.path))
+										className={`text-[13px] font-medium transition-colors duration-300 ${location.pathname === link.path || (link.subLinks && location.pathname.startsWith(link.path))
 											? "text-primary"
 											: "text-foreground/70 group-hover:text-foreground"
 											}`}
@@ -201,6 +206,7 @@ export const Header = () => {
 							<button
 								onClick={() => setShowNotifications(!showNotifications)}
 								className="p-2 text-foreground/70 hover:text-primary transition-colors relative"
+								aria-label="Toggle notifications"
 							>
 								<Bell className="h-5 w-5" />
 								{notifications.length > 0 && (
@@ -254,6 +260,14 @@ export const Header = () => {
 							</AnimatePresence>
 						</div>
 
+						{/* Book Appointment Button */}
+						<Link to="/book-appointment">
+							<Button size="sm" className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white hidden sm:flex">
+								<Calendar className="h-4 w-4" />
+								Book Now
+							</Button>
+						</Link>
+
 						{/* Payments Button */}
 						<Link to="/payments">
 							<Button size="sm" className="gap-2 bg-gradient-primary hover:opacity-90 text-white hidden sm:flex">
@@ -279,10 +293,12 @@ export const Header = () => {
 							</Button>
 						)}
 
+
 						{/* Mobile Menu Button */}
 						<button
 							onClick={() => setIsOpen(!isOpen)}
 							className="lg:hidden p-2 text-foreground"
+							aria-label="Toggle menu"
 						>
 							{isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
 						</button>

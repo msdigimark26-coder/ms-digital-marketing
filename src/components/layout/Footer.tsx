@@ -24,6 +24,7 @@ const footerLinks = {
     { name: "About Us", path: "/about" },
     { name: "Portfolio", path: "/portfolio" },
     { name: "Testimonials", path: "/testimonials" },
+    { name: "Careers", path: "/careers" },
     { name: "Contact", path: "/contact" },
     { name: "Payments", path: "/payments" },
     { name: "Admin Portal", path: "/admin" },
@@ -168,7 +169,7 @@ export const Footer = () => {
                   <div className="p-2 rounded-lg glass">
                     <MapPin className="h-4 w-4" />
                   </div>
-                  <span>Trichy, India</span>
+                  <span>DURAIRAJ THEVAR STREET, Kochadai, Madurai - 625016</span>
                 </div>
               </li>
             </ul>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Volume2, VolumeX, Maximize2, Minimize2, ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { reelsSupabase as supabase } from "@/integrations/supabase/reels-client";
 import { useLocation } from "react-router-dom";
 
 interface Reel {

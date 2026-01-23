@@ -85,6 +85,20 @@ export const IDScannerModal: React.FC<IDScannerModalProps> = ({
         setStatusMessage("Align the ID Card barcode in the frame");
     };
 
+    // Function to stop the camera stream
+    const stopCamera = () => {
+        if (stream) {
+            stream.getTracks().forEach(track => {
+                track.stop();
+                console.log("Camera track stopped:", track.label);
+            });
+            setStream(null);
+        }
+        if (videoRef.current && videoRef.current.srcObject) {
+            videoRef.current.srcObject = null;
+        }
+    };
+
     const startScanning = () => {
         setStatus("scanning");
         setStatusMessage("Scanning Secure Barcode...");
@@ -115,6 +129,9 @@ export const IDScannerModal: React.FC<IDScannerModalProps> = ({
                     setStatusMessage("Identity Verified Successfully.");
                     toast.success("ID Token Validated.");
 
+                    // STOP THE CAMERA IMMEDIATELY
+                    stopCamera();
+
                     setTimeout(() => {
                         onSuccess(data);
                     }, 1000);
@@ -130,7 +147,12 @@ export const IDScannerModal: React.FC<IDScannerModalProps> = ({
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <Dialog open={isOpen} onOpenChange={(open) => {
+            if (!open) {
+                stopCamera();
+                onClose();
+            }
+        }}>
             <DialogContent className="sm:max-w-md bg-[#070412] border-blue-500/30 text-white backdrop-blur-2xl px-6 py-8">
                 <DialogHeader className="mb-6">
                     <DialogTitle className="text-2xl font-black text-center flex items-center justify-center gap-3 tracking-tight">
@@ -210,8 +232,8 @@ export const IDScannerModal: React.FC<IDScannerModalProps> = ({
 
                     <div className="flex flex-col items-center gap-2">
                         <p className={`text-sm font-black tracking-widest uppercase text-center ${status === 'error' ? 'text-red-400' :
-                                status === 'success' ? 'text-green-400' :
-                                    'text-blue-400'
+                            status === 'success' ? 'text-green-400' :
+                                'text-blue-400'
                             }`}>
                             {statusMessage}
                         </p>
@@ -235,7 +257,10 @@ export const IDScannerModal: React.FC<IDScannerModalProps> = ({
                 <div className="flex gap-4 justify-center mt-10">
                     <Button
                         variant="outline"
-                        onClick={onClose}
+                        onClick={() => {
+                            stopCamera();
+                            onClose();
+                        }}
                         className="bg-transparent border-white/10 hover:bg-white/5 text-slate-400 rounded-2xl h-14 px-8 font-black uppercase tracking-tighter"
                     >
                         Abort

@@ -223,7 +223,22 @@ export const SettingsSection = () => {
                                                 <img src={form.avatar_url} alt="Preview" className="w-full h-full object-cover" />
                                                 <button
                                                     type="button"
-                                                    onClick={() => setForm({ ...form, avatar_url: "" })}
+                                                    onClick={async () => {
+                                                        // Optionally delete from storage
+                                                        try {
+                                                            if (form.avatar_url) {
+                                                                const fileName = form.avatar_url.split('/').pop();
+                                                                if (fileName) {
+                                                                    await supabase.storage
+                                                                        .from('admin-avatars')
+                                                                        .remove([fileName]);
+                                                                }
+                                                            }
+                                                        } catch (error) {
+                                                            console.error('Error removing old avatar:', error);
+                                                        }
+                                                        setForm({ ...form, avatar_url: "" });
+                                                    }}
                                                     className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity text-white text-xs"
                                                 >
                                                     Remove
@@ -239,30 +254,89 @@ export const SettingsSection = () => {
                                                     const file = e.target.files?.[0];
                                                     if (!file) return;
 
-                                                    const fileExt = file.name.split('.').pop();
-                                                    const fileName = `${Math.random()}.${fileExt}`;
-                                                    const filePath = `${fileName}`;
+                                                    // Validate file type
+                                                    if (!file.type.startsWith('image/')) {
+                                                        toast.error("Please select a valid image file");
+                                                        e.target.value = ''; // Reset input
+                                                        return;
+                                                    }
+
+                                                    // Validate file size (max 5MB)
+                                                    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+                                                    if (file.size > maxSize) {
+                                                        toast.error("File size must be less than 5MB");
+                                                        e.target.value = ''; // Reset input
+                                                        return;
+                                                    }
+
+                                                    const loadingToast = toast.loading("Uploading image...");
 
                                                     try {
-                                                        const { error: uploadError } = await supabase.storage
+                                                        // Generate unique filename with timestamp
+                                                        const fileExt = file.name.split('.').pop();
+                                                        const timestamp = Date.now();
+                                                        const randomStr = Math.random().toString(36).substring(2, 15);
+                                                        const fileName = `avatar_${timestamp}_${randomStr}.${fileExt}`;
+                                                        const filePath = fileName;
+
+                                                        // Delete old avatar if exists
+                                                        if (form.avatar_url) {
+                                                            try {
+                                                                const oldFileName = form.avatar_url.split('/').pop();
+                                                                if (oldFileName) {
+                                                                    await supabase.storage
+                                                                        .from('admin-avatars')
+                                                                        .remove([oldFileName]);
+                                                                }
+                                                            } catch (error) {
+                                                                console.error('Error removing old avatar:', error);
+                                                            }
+                                                        }
+
+                                                        // Upload new file
+                                                        const { error: uploadError, data } = await supabase.storage
                                                             .from('admin-avatars')
-                                                            .upload(filePath, file);
+                                                            .upload(filePath, file, {
+                                                                cacheControl: '3600',
+                                                                upsert: false
+                                                            });
 
-                                                        if (uploadError) throw uploadError;
+                                                        if (uploadError) {
+                                                            console.error('Upload error:', uploadError);
+                                                            throw uploadError;
+                                                        }
 
+                                                        // Get public URL
                                                         const { data: { publicUrl } } = supabase.storage
                                                             .from('admin-avatars')
                                                             .getPublicUrl(filePath);
 
                                                         setForm({ ...form, avatar_url: publicUrl });
-                                                        toast.success("Image uploaded successfully");
+                                                        toast.dismiss(loadingToast);
+                                                        toast.success("Image uploaded successfully!");
+                                                        e.target.value = ''; // Reset input for future uploads
                                                     } catch (error: any) {
-                                                        toast.error("Error uploading image: " + error.message);
+                                                        console.error("Upload error details:", error);
+                                                        toast.dismiss(loadingToast);
+
+                                                        // Provide helpful error messages
+                                                        let errorMessage = "Error uploading image";
+                                                        if (error.message?.includes('row-level security')) {
+                                                            errorMessage = "Permission denied. Please contact administrator to fix storage bucket permissions.";
+                                                        } else if (error.message?.includes('Bucket not found')) {
+                                                            errorMessage = "Storage bucket not configured. Please contact administrator.";
+                                                        } else if (error.message) {
+                                                            errorMessage = `Upload failed: ${error.message}`;
+                                                        }
+
+                                                        toast.error(errorMessage);
+                                                        e.target.value = ''; // Reset input
                                                     }
                                                 }}
                                                 className="pl-10 cursor-pointer text-xs file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-white/5 file:text-slate-300 hover:file:bg-white/10 bg-black/20 border-white/5 text-slate-400 h-10 rounded-lg"
                                             />
                                         </div>
+                                        <p className="text-xs text-slate-600 ml-0.5">Max file size: 5MB. Supported: JPG, PNG, GIF, WebP</p>
                                     </div>
                                 </div>
                                 <div>

@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Star, Quote, MessageSquare, Globe, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { GridSkeleton, TestimonialCardSkeleton } from "@/components/ui/LoadingSkeletons";
 
 interface Testimonial {
   name: string;
@@ -72,21 +73,45 @@ const defaultTestimonials: Testimonial[] = [
   },
 ];
 
+import { supabase } from "@/integrations/supabase/client";
+
 const Testimonials = () => {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for saved testimonials or use default
-    const saved = localStorage.getItem("msdigimark_testimonials");
-    if (saved) {
+    const fetchTestimonials = async () => {
       try {
-        setTestimonials(JSON.parse(saved));
-      } catch (e) {
+        const { data, error } = await supabase
+          .from("testimonials")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          setTestimonials(data.map(t => ({
+            name: t.name,
+            role: t.role,
+            content: t.content,
+            rating: t.rating,
+            image: t.image_url,
+            // Flag and company might not be in the base schema, adding fallback logic
+            company: t.company || "Client",
+            flag: t.flag || "🌍"
+          })));
+        } else {
+          setTestimonials(defaultTestimonials);
+        }
+      } catch (err) {
+        console.error("Error fetching testimonials:", err);
         setTestimonials(defaultTestimonials);
+      } finally {
+        setLoading(false);
       }
-    } else {
-      setTestimonials(defaultTestimonials);
-    }
+    };
+
+    fetchTestimonials();
   }, []);
 
   return (
@@ -126,62 +151,68 @@ const Testimonials = () => {
             </motion.div>
 
             {/* Testimonials Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-              {testimonials.map((t, i) => (
-                <motion.div
-                  key={t.name + i}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  transition={{ delay: i * 0.1, duration: 0.5 }}
-                  className="group relative p-8 rounded-3xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] hover:border-purple-500/30 transition-all duration-300"
-                >
-                  {/* Decorative Quote */}
-                  <Quote className="absolute top-6 right-8 h-12 w-12 text-white/5 group-hover:text-purple-500/20 transition-colors duration-300 rotate-180" />
+            <div className="relative">
+              {loading ? (
+                <GridSkeleton count={6} SkeletonComponent={TestimonialCardSkeleton} />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+                  {testimonials.map((t, i) => (
+                    <motion.div
+                      key={t.name + i}
+                      initial={{ opacity: 0, y: 30 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, margin: "-50px" }}
+                      transition={{ delay: i * 0.1, duration: 0.5 }}
+                      className="group relative p-8 rounded-3xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] hover:border-purple-500/30 transition-all duration-300 shadow-xl backdrop-blur-sm"
+                    >
+                      {/* Decorative Quote */}
+                      <Quote className="absolute top-6 right-8 h-12 w-12 text-white/5 group-hover:text-purple-500/20 transition-colors duration-300 rotate-180" />
 
-                  {/* Rating */}
-                  <div className="flex gap-1 mb-6">
-                    {Array.from({ length: t.rating || 5 }).map((_, j) => (
-                      <Star key={j} className="h-4 w-4 fill-amber-400 text-amber-400 drop-shadow-sm" />
-                    ))}
-                  </div>
-
-                  {/* Content */}
-                  <p className="text-slate-300 leading-relaxed mb-8 min-h-[80px]">
-                    "{t.content}"
-                  </p>
-
-                  <div className="mt-auto flex items-center gap-4 pt-6 border-t border-white/5">
-                    <div className="relative">
-                      <div className="w-12 h-12 rounded-full overflow-hidden ring-2 ring-white/10 group-hover:ring-purple-500/50 transition-all">
-                        {t.image ? (
-                          <img src={t.image} alt={t.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full bg-purple-900/50 flex items-center justify-center text-purple-200 font-bold">
-                            {t.name.charAt(0)}
-                          </div>
-                        )}
+                      {/* Rating */}
+                      <div className="flex gap-1 mb-6">
+                        {Array.from({ length: t.rating || 5 }).map((_, j) => (
+                          <Star key={j} className="h-4 w-4 fill-amber-400 text-amber-400 drop-shadow-sm" />
+                        ))}
                       </div>
-                      {/* Optional Flag Badge */}
-                      {t.flag && (
-                        <span className="absolute -bottom-1 -right-1 text-sm filter drop-shadow-md grayscale group-hover:grayscale-0 transition-all delay-100">
-                          {t.flag}
-                        </span>
-                      )}
-                    </div>
 
-                    <div>
-                      <h4 className="font-bold text-white text-sm group-hover:text-purple-300 transition-colors">
-                        {t.name}
-                      </h4>
-                      <p className="text-xs text-slate-500 font-medium">
-                        {t.role}
-                        {t.company ? <span className="text-slate-600"> @ {t.company}</span> : null}
+                      {/* Content */}
+                      <p className="text-slate-300 leading-relaxed mb-8 min-h-[80px]">
+                        "{t.content}"
                       </p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+
+                      <div className="mt-auto flex items-center gap-4 pt-6 border-t border-white/5">
+                        <div className="relative">
+                          <div className="w-12 h-12 rounded-full overflow-hidden ring-2 ring-white/10 group-hover:ring-purple-500/50 transition-all">
+                            {t.image ? (
+                              <img src={t.image} alt={t.name} className="w-full h-full object-cover" loading="lazy" />
+                            ) : (
+                              <div className="w-full h-full bg-purple-900/50 flex items-center justify-center text-purple-200 font-bold">
+                                {t.name.charAt(0)}
+                              </div>
+                            )}
+                          </div>
+                          {/* Optional Flag Badge */}
+                          {t.flag && (
+                            <span className="absolute -bottom-1 -right-1 text-sm filter drop-shadow-md grayscale group-hover:grayscale-0 transition-all delay-100">
+                              {t.flag}
+                            </span>
+                          )}
+                        </div>
+
+                        <div>
+                          <h4 className="font-bold text-white text-sm group-hover:text-purple-300 transition-colors">
+                            {t.name}
+                          </h4>
+                          <p className="text-xs text-slate-500 font-medium">
+                            {t.role}
+                            {t.company ? <span className="text-slate-600"> @ {t.company}</span> : null}
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Bottom CTA */}

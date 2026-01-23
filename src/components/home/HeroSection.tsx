@@ -3,14 +3,16 @@ import { ArrowRight, Play, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
+import { NumberCounter } from "@/components/ui/NumberCounter";
+
 export const HeroSection = () => {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Animated background */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-neon-purple/20 rounded-full blur-[60px] animate-pulse-glow will-change-[transform,opacity]" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-neon-blue/20 rounded-full blur-[60px] animate-pulse-glow will-change-[transform,opacity]" style={{ animationDelay: "1s" }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-neon-pink/10 rounded-full blur-[80px]" />
+      {/* Animated background glows */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-neon-purple/20 rounded-full blur-[40px] animate-pulse-glow will-change-transform transform-gpu" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-neon-blue/20 rounded-full blur-[40px] animate-pulse-glow will-change-transform transform-gpu" style={{ animationDelay: "1s" }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-neon-pink/10 rounded-full blur-[60px] transform-gpu" />
       </div>
 
       {/* Grid pattern overlay */}
@@ -72,7 +74,7 @@ export const HeroSection = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-12 leading-relaxed"
+            className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-12 leading-relaxed"
           >
             Award-winning digital marketing agency crafting immersive brand
             experiences through SEO, social media, design, and cutting-edge
@@ -89,7 +91,7 @@ export const HeroSection = () => {
             <Link to="/contact">
               <Button
                 size="lg"
-                className="bg-gradient-primary hover:opacity-90 transition-all hover-glow text-lg px-8 py-6 group"
+                className="bg-gradient-primary hover:opacity-90 transition-all hover-glow text-base px-8 py-6 group"
               >
                 Start Your Project
                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
@@ -99,7 +101,7 @@ export const HeroSection = () => {
               <Button
                 size="lg"
                 variant="outline"
-                className="border-primary/50 hover:border-primary hover:bg-primary/10 text-lg px-8 py-6 group"
+                className="border-primary/50 hover:border-primary hover:bg-primary/10 text-base px-8 py-6 group"
               >
                 <Play className="mr-2 h-5 w-5" />
                 View Our Work
@@ -115,24 +117,24 @@ export const HeroSection = () => {
             className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-20"
           >
             {[
-              { value: "10+", label: "Happy Clients" },
-              { value: "7+", label: "Projects Completed" },
-              { value: "2+", label: "Years Experience" },
-              { value: "6+", label: "Team Members" },
+              { value: 10, suffix: "+", label: "Happy Clients" },
+              { value: 7, suffix: "+", label: "Projects Completed" },
+              { value: 2, suffix: "+", label: "Years Experience" },
+              { value: 6, suffix: "+", label: "Team Members" },
             ].map((stat, index) => (
               <div key={index} className="text-center">
-                <div className="font-display text-4xl md:text-5xl font-bold text-gradient mb-2">
-                  {stat.value}
+                <div className="font-display text-3xl md:text-4xl font-bold text-gradient mb-2">
+                  <NumberCounter value={stat.value} suffix={stat.suffix} duration={2.5} />
                 </div>
                 <div className="text-muted-foreground">{stat.label}</div>
               </div>
             ))}
           </motion.div>
         </div>
-      </div>
+      </div >
 
       {/* Scroll indicator */}
-      <motion.div
+      < motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.5 }}
@@ -149,7 +151,7 @@ export const HeroSection = () => {
             className="w-1 h-2 rounded-full bg-primary"
           />
         </motion.div>
-      </motion.div>
-    </section>
+      </motion.div >
+    </section >
   );
 };

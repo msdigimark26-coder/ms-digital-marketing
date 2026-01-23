@@ -188,9 +188,12 @@ const About = () => {
                   Start a Project
                 </Button>
               </Link>
-              <Button size="lg" variant="outline" className="h-12 px-8 border-white/20 text-white hover:bg-white/10 rounded-full bg-transparent">
-                View Openings
-              </Button>
+              <Link to="/careers">
+                <Button size="lg" variant="outline" className="h-12 px-8 border-white/20 text-white hover:bg-white/10 rounded-full bg-transparent">
+                  View Openings
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </div>
           </div>
         </section>

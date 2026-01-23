@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Star, Quote, Loader2, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Card3DTilt } from "@/components/ui/Card3DTilt";
 
 interface Testimonial {
   id?: string;
@@ -151,42 +152,44 @@ export const TestimonialsSection = () => {
                 transition={{ delay: index * 0.1 }}
                 className="break-inside-avoid"
               >
-                <div className="relative p-8 rounded-2xl bg-[#110C1D] border border-white/5 hover:border-purple-500/30 hover:bg-white/[0.02] transition-all duration-300 group">
-                  {/* Decorative Quote Mark */}
-                  <div className="absolute top-6 right-8 text-6xl text-white/5 font-serif leading-none group-hover:text-purple-500/10 transition-colors">
-                    "
-                  </div>
-
-                  {/* Rating Stars */}
-                  <div className="flex gap-1 mb-6">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`h-4 w-4 ${i < testimonial.rating ? "fill-yellow-400 text-yellow-400" : "fill-gray-700 text-gray-700"}`}
-                      />
-                    ))}
-                  </div>
-
-                  {/* Content */}
-                  <p className="text-slate-300 text-base leading-relaxed mb-8 relative z-10">
-                    {testimonial.content}
-                  </p>
-
-                  {/* Author Info */}
-                  <div className="flex items-center gap-4 pt-6 border-t border-white/5">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg overflow-hidden flex-shrink-0">
-                      {testimonial.image_url ? (
-                        <img src={testimonial.image_url} alt={testimonial.name} className="w-full h-full object-cover" />
-                      ) : (
-                        testimonial.name.charAt(0)
-                      )}
+                <Card3DTilt maxTilt={8} glareEnabled={true}>
+                  <div className="relative p-8 rounded-2xl bg-[#110C1D] border border-white/5 hover:border-purple-500/30 hover:bg-white/[0.02] transition-all duration-300 group">
+                    {/* Decorative Quote Mark */}
+                    <div className="absolute top-6 right-8 text-6xl text-white/5 font-serif leading-none group-hover:text-purple-500/10 transition-colors">
+                      "
                     </div>
-                    <div>
-                      <h4 className="font-bold text-white text-sm">{testimonial.name}</h4>
-                      <p className="text-xs text-slate-500">{testimonial.role}</p>
+
+                    {/* Rating Stars */}
+                    <div className="flex gap-1 mb-6">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`h-4 w-4 ${i < testimonial.rating ? "fill-yellow-400 text-yellow-400" : "fill-gray-700 text-gray-700"}`}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Content */}
+                    <p className="text-slate-300 text-base leading-relaxed mb-8 relative z-10">
+                      {testimonial.content}
+                    </p>
+
+                    {/* Author Info */}
+                    <div className="flex items-center gap-4 pt-6 border-t border-white/5">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg overflow-hidden flex-shrink-0">
+                        {testimonial.image_url ? (
+                          <img src={testimonial.image_url} alt={testimonial.name} className="w-full h-full object-cover" />
+                        ) : (
+                          testimonial.name.charAt(0)
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-white text-sm">{testimonial.name}</h4>
+                        <p className="text-xs text-slate-500">{testimonial.role}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                </Card3DTilt>
               </motion.div>
             ))}
           </div>

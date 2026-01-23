@@ -8,9 +8,9 @@ import {
     Code, Search, Share2, Target, Film, Palette, Box, Sparkles, Layers, Eye, EyeOff,
     Upload, Image as ImageIcon, Cpu, Wifi, Database, Cloud, Zap, Globe, Server, HardDrive,
     Radio, Bluetooth, Network, MonitorSmartphone, Binary, CircuitBoard, Webhook,
-    Cuboid, BoxSelect, Shapes, Pentagon, Hexagon, Package, Combine, Maximize2
+    Cuboid, BoxSelect, Shapes, Pentagon, Hexagon, Package, Combine, Maximize2, ExternalLink
 } from "lucide-react";
-import { servicesSupabase, isServicesSupabaseConfigured } from "@/integrations/supabase/servicesClient";
+import { servicesSupabase as supabase, isServicesSupabaseConfigured } from "@/integrations/supabase/servicesClient";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ServiceShowcase {
@@ -171,7 +171,7 @@ export const ServicesShowcaseSection = () => {
     const fetchServices = async () => {
         setLoading(true);
         try {
-            const { data, error } = await servicesSupabase
+            const { data, error } = await supabase
                 .from("services_showcase")
                 .select("*")
                 .order("order_index", { ascending: true });
@@ -187,12 +187,7 @@ export const ServicesShowcaseSection = () => {
     };
 
     useEffect(() => {
-        if (isServicesSupabaseConfigured) {
-            fetchServices();
-        } else {
-            setLoading(false);
-            toast.error("Services Supabase not configured. Please add VITE_SERVICES_SUPABASE_URL and VITE_SERVICES_SUPABASE_KEY to your .env file");
-        }
+        fetchServices();
     }, []);
 
     const validateForm = () => {
@@ -227,7 +222,7 @@ export const ServicesShowcaseSection = () => {
         setSaving(true);
         try {
             if (editingId) {
-                const { error } = await servicesSupabase
+                const { error } = await supabase
                     .from("services_showcase")
                     .update({
                         ...form,
@@ -243,7 +238,7 @@ export const ServicesShowcaseSection = () => {
                     ? Math.max(...services.map(s => s.order_index))
                     : 0;
 
-                const { error } = await servicesSupabase
+                const { error } = await supabase
                     .from("services_showcase")
                     .insert([{
                         ...form,
@@ -320,7 +315,7 @@ export const ServicesShowcaseSection = () => {
         if (!confirm(`Are you sure you want to delete "${title}"?\n\nThis action cannot be undone.`)) return;
 
         try {
-            const { error } = await servicesSupabase
+            const { error } = await supabase
                 .from("services_showcase")
                 .delete()
                 .eq("id", id);
@@ -347,11 +342,11 @@ export const ServicesShowcaseSection = () => {
 
             // Swap order_index
             await Promise.all([
-                servicesSupabase
+                supabase
                     .from("services_showcase")
                     .update({ order_index: targetService.order_index })
                     .eq("id", currentService.id),
-                servicesSupabase
+                supabase
                     .from("services_showcase")
                     .update({ order_index: currentService.order_index })
                     .eq("id", targetService.id)
@@ -367,7 +362,7 @@ export const ServicesShowcaseSection = () => {
 
     const toggleActive = async (id: string, currentStatus: boolean) => {
         try {
-            const { error } = await servicesSupabase
+            const { error } = await supabase
                 .from("services_showcase")
                 .update({ is_active: !currentStatus })
                 .eq("id", id);
@@ -428,22 +423,6 @@ export const ServicesShowcaseSection = () => {
             return colorMap[color] || "bg-pink-500";
         }
     };
-
-    if (!isServicesSupabaseConfigured) {
-        return (
-            <div className="glass-card p-16 text-center border-dashed border-red-500/30">
-                <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-white mb-2">Services Supabase Not Configured</h3>
-                <p className="text-muted-foreground mb-4">
-                    Please add the following environment variables to your .env file:
-                </p>
-                <div className="text-left max-w-md mx-auto bg-black/50 p-4 rounded-lg font-mono text-sm space-y-1">
-                    <p className="text-green-400">VITE_SERVICES_SUPABASE_URL=your_supabase_url</p>
-                    <p className="text-green-400">VITE_SERVICES_SUPABASE_KEY=your_supabase_anon_key</p>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -735,42 +714,45 @@ export const ServicesShowcaseSection = () => {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.05 }}
-                                className={`glass-card p-6 flex flex-col gap-4 group hover:border-primary/50 transition-all duration-300 ${!service.is_active ? 'opacity-50' : ''
+                                className={`glass-card p-5 md:p-6 flex flex-col gap-4 group hover:border-primary/50 transition-all duration-300 ${!service.is_active ? 'opacity-50' : ''
                                     }`}
                             >
-                                <div className="flex justify-between items-start gap-4">
-                                    <div className="flex gap-4 flex-1">
-                                        <div className={`h-14 w-14 rounded-2xl ${getColorClass(service.use_gradient && service.gradient_preset ? service.gradient_preset : service.icon_color, service.use_gradient !== false)} flex items-center justify-center text-white shrink-0 relative`}>
+                                <div className="flex flex-col sm:flex-row justify-between items-start gap-5">
+                                    <div className="flex gap-4 flex-1 w-full">
+                                        <div className={`h-14 w-14 rounded-2xl ${getColorClass(service.use_gradient && service.gradient_preset ? service.gradient_preset : service.icon_color, service.use_gradient !== false)} flex items-center justify-center text-white shrink-0 relative shadow-lg shadow-black/20`}>
                                             <Icon className="h-7 w-7" />
                                             {service.is_popular && (
-                                                <div className="absolute -top-2 -right-2 bg-yellow-500 text-black px-2 py-0.5 rounded-full text-[10px] font-black">
+                                                <div className="absolute -top-2 -right-2 bg-yellow-500 text-black px-2 py-0.5 rounded-full text-[9px] font-black shadow-lg">
                                                     POPULAR
                                                 </div>
                                             )}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <h3 className="font-bold text-lg text-white mb-1 line-clamp-1 flex items-center gap-2">
-                                                {service.title}
+                                            <h3 className="font-bold text-lg text-white mb-1 flex items-center gap-2 group-hover:text-primary transition-colors">
+                                                <span className="truncate">{service.title}</span>
                                                 {!service.is_active && (
-                                                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                                    <EyeOff className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                                                 )}
                                             </h3>
-                                            <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed mb-2">
+                                            <p className="text-sm text-muted-foreground leading-relaxed mb-2 line-clamp-3 sm:line-clamp-2">
                                                 {service.description}
                                             </p>
                                             {service.learn_more_url && (
-                                                <p className="text-xs text-primary/60 font-mono">
-                                                    → {service.learn_more_url}
-                                                </p>
+                                                <div className="flex items-center gap-1.5 text-[10px] text-primary/60 font-mono font-bold uppercase tracking-wider">
+                                                    <ExternalLink className="h-3 w-3" />
+                                                    {service.learn_more_url}
+                                                </div>
                                             )}
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-2 shrink-0">
-                                        <div className="flex gap-1">
+
+                                    {/* Actions Bar - Stacks or rows depending on screen */}
+                                    <div className="flex sm:flex-col justify-between items-center sm:items-end w-full sm:w-auto pt-4 sm:pt-0 border-t sm:border-t-0 border-white/5 gap-3">
+                                        <div className="flex gap-1 bg-black/20 p-1 rounded-lg border border-white/5">
                                             <button
                                                 onClick={() => handleReorder(service.id, 'up')}
                                                 disabled={index === 0}
-                                                className="p-2 hover:bg-white/5 rounded-lg text-muted-foreground hover:text-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                                className="p-2 hover:bg-white/5 rounded-md text-muted-foreground hover:text-primary transition-all disabled:opacity-20 disabled:cursor-not-allowed"
                                                 title="Move up"
                                             >
                                                 <MoveUp className="h-4 w-4" />
@@ -778,30 +760,31 @@ export const ServicesShowcaseSection = () => {
                                             <button
                                                 onClick={() => handleReorder(service.id, 'down')}
                                                 disabled={index === services.length - 1}
-                                                className="p-2 hover:bg-white/5 rounded-lg text-muted-foreground hover:text-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                                className="p-2 hover:bg-white/5 rounded-md text-muted-foreground hover:text-primary transition-all disabled:opacity-20 disabled:cursor-not-allowed"
                                                 title="Move down"
                                             >
                                                 <MoveDown className="h-4 w-4" />
                                             </button>
                                         </div>
-                                        <div className="flex gap-1">
+
+                                        <div className="flex gap-1 bg-black/20 p-1 rounded-lg border border-white/5">
                                             <button
                                                 onClick={() => toggleActive(service.id, service.is_active)}
-                                                className="p-2 hover:bg-white/5 rounded-lg text-muted-foreground hover:text-primary transition-all"
+                                                className="p-2 hover:bg-white/5 rounded-md text-muted-foreground hover:text-primary transition-all"
                                                 title={service.is_active ? "Hide" : "Show"}
                                             >
                                                 {service.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                                             </button>
                                             <button
                                                 onClick={() => handleEdit(service)}
-                                                className="p-2 hover:bg-white/5 rounded-lg text-muted-foreground hover:text-primary transition-all"
+                                                className="p-2 hover:bg-white/5 rounded-md text-muted-foreground hover:text-primary transition-all"
                                                 title="Edit service"
                                             >
                                                 <Edit2 className="h-4 w-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(service.id, service.title)}
-                                                className="p-2 hover:bg-rose-500/10 rounded-lg text-rose-500/50 hover:text-rose-500 transition-all opacity-0 group-hover:opacity-100"
+                                                className="p-2 hover:bg-rose-500/10 rounded-md text-rose-500/50 hover:text-rose-500 transition-all opacity-0 sm:group-hover:opacity-100"
                                                 title="Delete service"
                                             >
                                                 <Trash2 className="h-4 w-4" />
@@ -811,11 +794,11 @@ export const ServicesShowcaseSection = () => {
                                 </div>
 
                                 <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                                    <span className="text-xs text-muted-foreground/50">
-                                        Order: #{service.order_index}
+                                    <span className="text-[10px] text-muted-foreground/50 font-mono uppercase font-black">
+                                        Index #{service.order_index}
                                     </span>
                                     {service.created_at && (
-                                        <span className="text-xs text-muted-foreground/50">
+                                        <span className="text-[10px] text-muted-foreground/50 font-mono uppercase font-black">
                                             Added {new Date(service.created_at).toLocaleDateString()}
                                         </span>
                                     )}

@@ -673,6 +673,7 @@ export const PortfolioFrontSection = () => {
                                         onClick={(e) => { e.stopPropagation(); handleEdit(project); }}
                                         className="w-8 h-8 rounded-lg bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-primary hover:border-primary transition-colors"
                                         title="Edit"
+                                        aria-label="Edit project"
                                     >
                                         <Edit2 className="h-4 w-4" />
                                     </button>
@@ -680,6 +681,7 @@ export const PortfolioFrontSection = () => {
                                         onClick={(e) => { e.stopPropagation(); handleDelete(project.id, project.title); }}
                                         className="w-8 h-8 rounded-lg bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors"
                                         title="Delete"
+                                        aria-label="Delete project"
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </button>
@@ -716,6 +718,7 @@ export const PortfolioFrontSection = () => {
                                             onClick={() => handleMove(project.id, "up")}
                                             disabled={index === 0}
                                             className="h-6 w-6 text-slate-600 hover:text-white hover:bg-white/5"
+                                            aria-label="Move up"
                                         >
                                             <MoveUp className="h-3 w-3" />
                                         </Button>
@@ -725,6 +728,7 @@ export const PortfolioFrontSection = () => {
                                             onClick={() => handleMove(project.id, "down")}
                                             disabled={index === filteredProjects.length - 1}
                                             className="h-6 w-6 text-slate-600 hover:text-white hover:bg-white/5"
+                                            aria-label="Move down"
                                         >
                                             <MoveDown className="h-3 w-3" />
                                         </Button>

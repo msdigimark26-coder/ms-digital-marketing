@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, ExternalLink, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { servicesSupabase as supabase, isServicesSupabaseConfigured } from "@/integrations/supabase/servicesClient";
+import { Card3DTilt } from "@/components/ui/Card3DTilt";
 
 // Fallback data for when Supabase is not configured yet
 const FALLBACK_PROJECTS = [
@@ -141,45 +142,47 @@ export const PortfolioSection = () => {
               transition={{ delay: index * 0.2 }}
               className={`group relative ${index % 2 === 1 ? 'md:translate-y-16' : ''}`}
             >
-              <div className="relative overflow-hidden rounded-2xl aspect-[4/3] mb-6">
-                {/* Image Hover Zoom */}
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors duration-500 z-10" />
-                <img
-                  src={project.image}
-                  alt={project.title}
-                  loading="lazy"
-                  width={800}
-                  height={600}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 will-change-transform"
-                />
+              <Card3DTilt maxTilt={10} glareEnabled={true}>
+                <div className="relative overflow-hidden rounded-2xl aspect-[4/3] mb-6">
+                  {/* Image Hover Zoom */}
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors duration-500 z-10" />
+                  <img
+                    src={project.image}
+                    alt={project.title}
+                    loading="lazy"
+                    width={800}
+                    height={600}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 will-change-transform"
+                  />
 
-                {/* Search/Link Icon Overlay */}
-                <a href={project.project_url || "#"} target="_blank" rel="noopener noreferrer" className="absolute inset-0 z-20">
-                  <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg">
-                      <ArrowUpRight className="h-6 w-6 text-black" />
+                  {/* Search/Link Icon Overlay */}
+                  <a href={project.project_url || "#"} target="_blank" rel="noopener noreferrer" className="absolute inset-0 z-20">
+                    <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg">
+                        <ArrowUpRight className="h-6 w-6 text-black" />
+                      </div>
                     </div>
-                  </div>
-                </a>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex flex-wrap gap-2">
-                  {project.tags && project.tags.map((tag: string, i: number) => (
-                    <span key={i} className="px-3 py-1 rounded-full border border-white/10 text-xs text-slate-400 uppercase tracking-wider bg-white/[0.02]">
-                      {tag}
-                    </span>
-                  ))}
+                  </a>
                 </div>
 
-                <h3 className="text-3xl font-bold text-white group-hover:text-purple-400 transition-colors cursor-pointer">
-                  {project.title}
-                </h3>
+                <div className="space-y-4">
+                  <div className="flex flex-wrap gap-2">
+                    {project.tags && project.tags.map((tag: string, i: number) => (
+                      <span key={i} className="px-3 py-1 rounded-full border border-white/10 text-xs text-slate-400 uppercase tracking-wider bg-white/[0.02]">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
 
-                <p className="text-slate-400 leading-relaxed max-w-md line-clamp-2">
-                  {project.description}
-                </p>
-              </div>
+                  <h3 className="text-3xl font-bold text-white group-hover:text-purple-400 transition-colors cursor-pointer">
+                    {project.title}
+                  </h3>
+
+                  <p className="text-slate-400 leading-relaxed max-w-md line-clamp-2">
+                    {project.description}
+                  </p>
+                </div>
+              </Card3DTilt>
             </motion.div>
           ))}
         </div>

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Plus, Trash2, Edit2, Video, Loader2, Upload, Eye, EyeOff, LayoutGrid, Smartphone, MapPin } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { reelsSupabase as supabase } from "@/integrations/supabase/reels-client";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Reel {

@@ -92,6 +92,18 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
         setStatusMessage("Position your face in the frame");
     };
 
+    // Function to stop the camera stream
+    const stopCamera = () => {
+        if (videoRef.current && videoRef.current.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            stream.getTracks().forEach(track => {
+                track.stop();
+                console.log("Camera track stopped:", track.label);
+            });
+            videoRef.current.srcObject = null;
+        }
+    };
+
     const handleVerify = async () => {
         if (!videoRef.current || !isVideoReady) {
             setStatus("error");
@@ -172,6 +184,9 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
                 // Upload captured image to logs
                 const { data: uploadData } = await uploadLogImage(currentImage, userId);
 
+                // STOP THE CAMERA IMMEDIATELY
+                stopCamera();
+
                 setTimeout(() => {
                     onSuccess(
                         uploadData?.publicUrl || currentImage,
@@ -186,6 +201,9 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
 
                 // Log the failed attempt with the image
                 await uploadLogImage(currentImage, userId, 'failed');
+
+                // STOP THE CAMERA BEFORE CLOSING
+                stopCamera();
 
                 // Auto-trigger ID Scanner fallback via parent's onClose
                 setTimeout(() => {
@@ -264,7 +282,12 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <Dialog open={isOpen} onOpenChange={(open) => {
+            if (!open) {
+                stopCamera();
+                onClose();
+            }
+        }}>
             <DialogContent className="sm:max-w-md bg-[#0A051A] border-primary/20 text-white backdrop-blur-xl">
                 <DialogHeader>
                     <DialogTitle className="text-xl font-display font-bold text-center flex items-center justify-center gap-2">
@@ -350,7 +373,10 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
                 <div className="flex gap-2 justify-end mt-4">
                     <Button
                         variant="ghost"
-                        onClick={onClose}
+                        onClick={() => {
+                            stopCamera();
+                            onClose();
+                        }}
                         className="hover:bg-white/5"
                     >
                         Cancel

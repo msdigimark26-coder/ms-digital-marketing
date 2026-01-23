@@ -25,7 +25,9 @@ import {
     X,
     Package,
     Video,
-    IdCard
+    IdCard,
+    FileText,
+    Award
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,15 +50,21 @@ import { AssetsSection } from "@/components/admin/AssetsSection";
 import { ReelsSection } from "@/components/admin/ReelsSection";
 import { EmployeesSection } from "@/components/admin/EmployeesSection";
 import { IDCardsSection } from "@/components/admin/IDCardsSection";
+import { CareersSection } from "@/components/admin/CareersSection";
+import { BlogSection } from "@/components/admin/BlogSection";
 import { IDCardSidebar, IDCardModal } from "@/components/admin/IDCard";
+import { CertificationsManagementSection } from "@/components/admin/CertificationsSection";
 import { isServicesSupabaseConfigured, servicesSupabase } from "@/integrations/supabase/servicesClient";
+import { isCareersSupabaseConfigured, careersSupabase } from "@/integrations/supabase/careersClient";
 import { AlertCircle } from "lucide-react";
 
 const Admin = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [loginForm, setLoginForm] = useState({ identifier: "", password: "" });
     const [currentUser, setCurrentUser] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState("dashboard");
+    const [activeTab, setActiveTab] = useState(() => {
+        return localStorage.getItem("ms-admin-active-tab") || "dashboard";
+    });
     const [isLoading, setIsLoading] = useState(false);
     const [showFaceAuth, setShowFaceAuth] = useState(false);
     const [showIDScanner, setShowIDScanner] = useState(false);
@@ -234,7 +242,10 @@ const Admin = () => {
                         position: "top-center",
                         action: {
                             label: "View Evidence",
-                            onClick: () => setActiveTab("audit")
+                            onClick: () => {
+                                setActiveTab("audit");
+                                localStorage.setItem("ms-admin-active-tab", "audit");
+                            }
                         },
                         style: {
                             background: "#450a0a",
@@ -250,6 +261,114 @@ const Admin = () => {
             supabase.removeChannel(channel);
         };
     }, [isLoggedIn, currentUser]);
+
+    // REALTIME NOTIFICATION: New Bookings
+    useEffect(() => {
+        if (!isLoggedIn || !isServicesSupabaseConfigured) return;
+
+        const channel = servicesSupabase
+            .channel('realtime_bookings')
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'bookings' },
+                (payload) => {
+                    const newBooking = payload.new;
+                    console.log("New booking received:", newBooking);
+
+                    playAlertSound();
+
+                    toast.success("NEW APPOINTMENT BOOKING!", {
+                        description: `${newBooking.name} has booked an appointment for ${newBooking.service_name || 'a service'}.`,
+                        duration: 10000,
+                        position: "top-right",
+                        action: {
+                            label: "View Booking",
+                            onClick: () => {
+                                setActiveTab("bookings");
+                                localStorage.setItem("ms-admin-active-tab", "bookings");
+                            }
+                        }
+                    });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            servicesSupabase.removeChannel(channel);
+        };
+    }, [isLoggedIn]);
+
+    // REALTIME NOTIFICATION: New Job Applications
+    useEffect(() => {
+        if (!isLoggedIn || !isCareersSupabaseConfigured) return;
+
+        const channel = careersSupabase
+            .channel('realtime_applications')
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'job_applications' },
+                (payload) => {
+                    const newApp = payload.new;
+                    console.log("New job application received:", newApp);
+
+                    playAlertSound();
+
+                    toast.info("NEW JOB APPLICATION RECEIVED!", {
+                        description: `${newApp.full_name} has applied for a position.`,
+                        duration: 10000,
+                        position: "top-right",
+                        action: {
+                            label: "View Application",
+                            onClick: () => {
+                                setActiveTab("careers");
+                                localStorage.setItem("ms-admin-active-tab", "careers");
+                            }
+                        }
+                    });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            careersSupabase.removeChannel(channel);
+        };
+    }, [isLoggedIn]);
+
+    // REALTIME NOTIFICATION: New Leads (Contact Form / Manual)
+    useEffect(() => {
+        if (!isLoggedIn) return;
+
+        const channel = supabase
+            .channel('realtime_leads')
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'leads' },
+                (payload) => {
+                    const newLead = payload.new;
+                    console.log("New lead received:", newLead);
+
+                    playAlertSound();
+
+                    toast.info("NEW LEAD CAPTURED!", {
+                        description: `${newLead.name} has submitted a new inquiry.`,
+                        duration: 10000,
+                        position: "top-right",
+                        action: {
+                            label: "View Lead",
+                            onClick: () => {
+                                setActiveTab("leads");
+                                localStorage.setItem("ms-admin-active-tab", "leads");
+                            }
+                        }
+                    });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [isLoggedIn]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -327,7 +446,9 @@ const Admin = () => {
 
         setIsLoggedIn(false);
         setCurrentUser(null);
+        setActiveTab("dashboard");
         sessionStorage.removeItem("ms-admin-session");
+        localStorage.removeItem("ms-admin-active-tab");
         toast.info("Signed out successfully");
     };
 
@@ -551,7 +672,9 @@ const Admin = () => {
         { id: "testimonials", label: "Testimonials", icon: MessageSquare },
         { id: "services", label: "Services Old", icon: Layers },
         { id: "services-showcase", label: "Services Showcase", icon: Monitor },
+        { id: "blog", label: "Blog Articles", icon: FileText },
         { id: "bookings", label: "Bookings", icon: Calendar },
+        { id: "careers", label: "Careers", icon: Briefcase },
         { id: "payments", label: "Payments", icon: CreditCard },
         { id: "assets", label: "Assets", icon: Package },
         { id: "reels", label: "Reels", icon: Video },
@@ -561,6 +684,7 @@ const Admin = () => {
         ...(['super_admin', 'superadmin', 'Administrator', 'administrator'].includes(currentUser?.role) ? [
             { id: "team", label: "Team", icon: Users },
             { id: "id-cards", label: "ID Cards", icon: IdCard },
+            { id: "certifications", label: "Certifications", icon: Award },
             { id: "audit", label: "Audit Logs", icon: Shield }
         ] : []),
     ];
@@ -589,23 +713,31 @@ const Admin = () => {
                         <div className="font-semibold text-lg text-white tracking-tight">Portal</div>
                     </div>
 
-                    <nav className="space-y-1 overflow-y-auto flex-1 pr-2 custom-scrollbar">
+                    <nav className="flex-1 space-y-1 overflow-y-auto pr-2 custom-scrollbar">
                         {menuItems.map(item => (
                             <button
                                 key={item.id}
                                 onClick={() => {
                                     setActiveTab(item.id);
+                                    localStorage.setItem("ms-admin-active-tab", item.id);
                                     setIsMobileMenuOpen(false);
                                 }}
-                                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all group relative overflow-hidden text-sm font-medium ${activeTab === item.id
-                                    ? 'bg-white/5 text-white'
-                                    : 'text-muted-foreground hover:bg-white/5 hover:text-slate-200'
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden text-sm font-bold ${activeTab === item.id
+                                    ? 'bg-white/5 text-white ring-1 ring-white/10 shadow-[0_4px_20px_-10px_rgba(255,255,255,0.1)]'
+                                    : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
                                     }`}
                             >
-                                <item.icon className={`h-4 w-4 ${activeTab === item.id ? 'text-primary' : 'text-muted-foreground group-hover:text-slate-300'}`} />
-                                <span>{item.label}</span>
+                                <div className={`flex items-center justify-center h-5 w-5 shrink-0 transition-colors duration-300 ${activeTab === item.id ? 'text-primary' : 'text-slate-500 group-hover:text-slate-300'}`}>
+                                    <item.icon className="h-4 w-4" />
+                                </div>
+                                <span className="truncate whitespace-nowrap overflow-hidden text-left flex-1 min-w-0">{item.label}</span>
+
                                 {activeTab === item.id && (
-                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-4 bg-primary rounded-r-full" />
+                                    <>
+                                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full shadow-[0_0_12px_rgba(168,85,247,0.8)]" />
+                                        <div className="absolute inset-x-0 inset-y-0 border border-white/5 rounded-xl pointer-events-none" />
+                                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
+                                    </>
                                 )}
                             </button>
                         ))}
@@ -707,7 +839,10 @@ const Admin = () => {
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => setActiveTab("notifications")}
+                                onClick={() => {
+                                    setActiveTab("notifications");
+                                    localStorage.setItem("ms-admin-active-tab", "notifications");
+                                }}
                                 className="relative h-9 w-9 rounded-md hover:bg-white/5 text-slate-400 hover:text-white"
                             >
                                 <Bell className="h-4 w-4" />
@@ -852,6 +987,31 @@ const Admin = () => {
                             </motion.div>
                         )}
 
+
+                        {activeTab === "blog" && (
+                            <motion.div
+                                key="blog"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <BlogSection />
+                            </motion.div>
+                        )}
+
+                        {activeTab === "careers" && (
+                            <motion.div
+                                key="careers"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <CareersSection />
+                            </motion.div>
+                        )}
+
                         {activeTab === "payments" && (
                             <motion.div
                                 key="payments"
@@ -936,8 +1096,20 @@ const Admin = () => {
                             </motion.div>
                         )}
 
+                        {activeTab === "certifications" && (
+                            <motion.div
+                                key="certifications"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <CertificationsManagementSection />
+                            </motion.div>
+                        )}
+
                         {/* Fallback for other tabs until implemented */}
-                        {!["dashboard", "leads", "portfolio", "portfolio-front", "testimonials", "services", "services-showcase", "settings", "notifications", "bookings", "payments", "messages", "audit", "assets", "reels", "team", "id-cards"].includes(activeTab) && (
+                        {!["dashboard", "leads", "portfolio", "portfolio-front", "testimonials", "services", "services-showcase", "settings", "notifications", "bookings", "payments", "messages", "audit", "assets", "reels", "team", "id-cards", "careers", "blog", "certifications"].includes(activeTab) && (
                             <motion.div
                                 key="placeholder"
                                 initial={{ opacity: 0 }}
