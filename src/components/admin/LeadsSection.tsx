@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Plus, Trash2, Edit2, Search, Filter, Mail, Phone, Clock, ExternalLink, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +25,16 @@ export const LeadsSection = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState("all");
+    const [open, setOpen] = useState(false);
+    const [form, setForm] = useState({
+        name: "",
+        email: "",
+        phone: "",
+        status: "new",
+        source: "manual",
+        message: ""
+    });
+    const [submitting, setSubmitting] = useState(false);
 
     const fetchLeads = async () => {
         setLoading(true);
@@ -79,6 +92,37 @@ export const LeadsSection = () => {
         (filterStatus === "all" || l.status === filterStatus)
     );
 
+    // ...existing code...
+    const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setForm({ ...form, [e.target.name]: e.target.value });
+    };
+
+    const handleAddLead = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSubmitting(true);
+        try {
+            const { error } = await supabase.from("leads").insert([
+                {
+                    name: form.name,
+                    email: form.email,
+                    phone: form.phone,
+                    status: form.status,
+                    source: form.source,
+                    message: form.message,
+                },
+            ]);
+            if (error) throw error;
+            toast.success("Lead added");
+            setOpen(false);
+            setForm({ name: "", email: "", phone: "", status: "new", source: "manual", message: "" });
+            fetchLeads();
+        } catch (error: any) {
+            toast.error(error.message);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     return (
         <div className="space-y-8 animate-fade-in">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -86,9 +130,45 @@ export const LeadsSection = () => {
                     <h2 className="text-2xl font-bold text-white tracking-tight">Leads Management</h2>
                     <p className="text-slate-500 mt-1 text-sm font-medium">Capture and convert your potential clients</p>
                 </div>
-                <Button className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold shadow-md shadow-purple-900/20">
-                    <Plus className="mr-2 h-4 w-4" /> Add Manual Lead
-                </Button>
+                <Dialog open={open} onOpenChange={setOpen}>
+                    <DialogTrigger asChild>
+                        <Button className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold shadow-md shadow-purple-900/20">
+                            <Plus className="mr-2 h-4 w-4" /> Add Manual Lead
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Add Manual Lead</DialogTitle>
+                        </DialogHeader>
+                        <form onSubmit={handleAddLead} className="space-y-4">
+                            <div>
+                                <Label htmlFor="name">Name</Label>
+                                <Input id="name" name="name" value={form.name} onChange={handleFormChange} required disabled={submitting} />
+                            </div>
+                            <div>
+                                <Label htmlFor="email">Email</Label>
+                                <Input id="email" name="email" type="email" value={form.email} onChange={handleFormChange} required disabled={submitting} />
+                            </div>
+                            <div>
+                                <Label htmlFor="phone">Phone</Label>
+                                <Input id="phone" name="phone" value={form.phone} onChange={handleFormChange} disabled={submitting} />
+                            </div>
+                            <div>
+                                <Label htmlFor="message">Message</Label>
+                                <Textarea id="message" name="message" value={form.message} onChange={handleFormChange} disabled={submitting} />
+                            </div>
+                            <DialogFooter>
+                                <Button type="submit" disabled={submitting} className="bg-purple-600 hover:bg-purple-700 text-white">
+                                    {submitting ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
+                                    Add Lead
+                                </Button>
+                                <DialogClose asChild>
+                                    <Button type="button" variant="outline">Cancel</Button>
+                                </DialogClose>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
             </div>
 
             <div className="bg-[#110C1D] border border-white/5 rounded-xl p-6 flex flex-col md:flex-row gap-4 items-center shadow-sm">
