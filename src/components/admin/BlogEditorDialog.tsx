@@ -108,8 +108,7 @@ export const BlogEditorDialog = ({ post, isOpen, onClose, onSuccess }: BlogEdito
         setFormData(prev => ({
             ...prev,
             title,
-            // Only auto-update slug if creating new
-            slug: !post ? title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : prev.slug
+            slug: !post ? (title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : prev.slug
         }));
     };
 
@@ -139,7 +138,7 @@ export const BlogEditorDialog = ({ post, isOpen, onClose, onSuccess }: BlogEdito
             // 1. Upload Image if changed
             if (imageFile) {
                 const fileExt = imageFile.name.split('.').pop();
-                const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+                const fileName = `${Date.now()}_${(formData.author_name || 'user').replace(/\s+/g, '_')}.${fileExt}`;
                 const filePath = `${fileName}`;
 
                 const { error: uploadError } = await supabase.storage

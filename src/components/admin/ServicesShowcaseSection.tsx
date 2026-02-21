@@ -10,7 +10,7 @@ import {
     Radio, Bluetooth, Network, MonitorSmartphone, Binary, CircuitBoard, Webhook,
     Cuboid, BoxSelect, Shapes, Pentagon, Hexagon, Package, Combine, Maximize2, ExternalLink
 } from "lucide-react";
-import { servicesSupabase as supabase, isServicesSupabaseConfigured } from "@/integrations/supabase/servicesClient";
+import { servicesSupabase as supabase } from "@/integrations/supabase/servicesClient";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ServiceShowcase {

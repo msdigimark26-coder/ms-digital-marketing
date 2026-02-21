@@ -94,7 +94,7 @@ export const JobDetail = () => {
         try {
             // 1. Upload resume to Supabase Storage
             const fileExt = resumeFile.name.split('.').pop();
-            const fileName = `${Date.now()}_${formData.full_name.replace(/\s+/g, '_')}.${fileExt}`;
+            const fileName = `${Date.now()}_${(formData.full_name || 'candidate').replace(/\s+/g, '_')}.${fileExt}`;
             const filePath = `${fileName}`;
 
             const { data: uploadData, error: uploadError } = await careersSupabase

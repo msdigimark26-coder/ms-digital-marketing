@@ -822,7 +822,7 @@ const Admin = () => {
                             <Menu className="h-6 w-6" />
                         </button>
                         <h2 className="text-sm font-medium text-slate-400 uppercase tracking-widest">
-                            {activeTab.replace('_', ' ')}
+                            {activeTab?.replace('_', ' ') || ''}
                         </h2>
                     </div>
 

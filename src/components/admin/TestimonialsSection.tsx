@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Plus, Trash2, Edit2, Star, User, Image as ImageIcon, Loader2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { motion } from "framer-motion";
 
 interface Testimonial {
     id: string;
@@ -13,7 +14,67 @@ interface Testimonial {
     content: string;
     rating: number;
     image_url?: string;
+    created_at?: string;
 }
+
+const TestimonialCard = React.memo(({
+    testimonial,
+    onEdit,
+    onDelete
+}: {
+    testimonial: Testimonial,
+    onEdit: (t: Testimonial) => void,
+    onDelete: (id: string) => void
+}) => (
+    <motion.div
+        initial={{ opacity: 0, scale: 0.98 }}
+        whileInView={{ opacity: 1, scale: 1 }}
+        viewport={{ once: true }}
+        className="bg-[#110C1D] border border-white/5 rounded-xl p-6 flex flex-col justify-between group hover:border-white/10 transition-all duration-300 shadow-sm"
+    >
+        <div>
+            <div className="flex items-center justify-between mb-4">
+                <div className="h-12 w-12 rounded-full overflow-hidden bg-purple-500/10 flex items-center justify-center border border-purple-500/10">
+                    {testimonial.image_url ? (
+                        <img src={testimonial.image_url} alt={testimonial.name} className="w-full h-full object-cover" />
+                    ) : (
+                        <div className="text-lg font-bold text-purple-400">{testimonial.name.charAt(0)}</div>
+                    )}
+                </div>
+                <div className="flex gap-1">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                        <Star key={i} className={`h-3 w-3 ${i < testimonial.rating ? 'fill-amber-500 text-amber-500' : 'text-slate-700'}`} />
+                    ))}
+                </div>
+            </div>
+            <p className="text-sm text-slate-400 italic mb-4 leading-relaxed line-clamp-4">"{testimonial.content}"</p>
+        </div>
+        <div className="flex justify-between items-end border-t border-white/5 pt-4 mt-auto">
+            <div>
+                <div className="font-semibold text-sm tracking-tight text-white">{testimonial.name}</div>
+                <div className="text-[10px] text-purple-400 uppercase font-bold">{testimonial.role}</div>
+            </div>
+            <div className="flex gap-2">
+                <button
+                    onClick={() => onEdit(testimonial)}
+                    className="p-1.5 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-colors"
+                    title="Edit"
+                >
+                    <Edit2 className="h-3.5 w-3.5" />
+                </button>
+                <button
+                    onClick={() => onDelete(testimonial.id)}
+                    className="p-1.5 hover:bg-rose-500/10 rounded-lg text-rose-500 transition-colors"
+                    title="Delete"
+                >
+                    <Trash2 className="h-3.5 w-3.5" />
+                </button>
+            </div>
+        </div>
+    </motion.div>
+));
+
+TestimonialCard.displayName = "TestimonialCard";
 
 export const TestimonialsSection = () => {
     const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
@@ -29,17 +90,17 @@ export const TestimonialsSection = () => {
     }>({ name: "", role: "", content: "", rating: 5 });
     const [uploading, setUploading] = useState(false);
 
-    const fetchTestimonials = async () => {
-        setLoading(true);
+    const fetchTestimonials = useCallback(async (showLoading = true) => {
+        if (showLoading) setLoading(true);
         try {
             const { data, error } = await supabase.from("testimonials").select("*").order("created_at", { ascending: false });
             if (error) throw error;
             setTestimonials(data || []);
         } catch (err) { console.error(err); }
         finally { setLoading(false); }
-    };
+    }, []);
 
-    useEffect(() => { fetchTestimonials(); }, []);
+    useEffect(() => { fetchTestimonials(); }, [fetchTestimonials]);
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         try {
@@ -60,9 +121,7 @@ export const TestimonialsSection = () => {
                 .from('testimonial-images')
                 .upload(filePath, file);
 
-            if (uploadError) {
-                throw uploadError;
-            }
+            if (uploadError) throw uploadError;
 
             const { data: { publicUrl } } = supabase.storage
                 .from('testimonial-images')
@@ -92,28 +151,32 @@ export const TestimonialsSection = () => {
                 if (error) throw error;
                 toast.success("Testimonial added");
             }
-            setForm({ name: "", role: "", content: "", rating: 5, image_url: undefined });
-            setIsAdding(false);
-            setEditingId(null);
-            fetchTestimonials();
+            resetForm();
+            fetchTestimonials(false);
         } catch (error: any) { toast.error(error.message); }
     };
 
-    const handleEdit = (t: Testimonial) => {
+    const resetForm = useCallback(() => {
+        setForm({ name: "", role: "", content: "", rating: 5, image_url: undefined });
+        setIsAdding(false);
+        setEditingId(null);
+    }, []);
+
+    const handleEdit = useCallback((t: Testimonial) => {
         setForm({ name: t.name, role: t.role, content: t.content, rating: t.rating, image_url: t.image_url });
         setEditingId(t.id);
         setIsAdding(true);
-    };
+    }, []);
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = useCallback(async (id: string) => {
         if (!confirm("Are you sure you want to delete this testimonial?")) return;
         try {
             const { error } = await supabase.from("testimonials").delete().eq("id", id);
             if (error) throw error;
             toast.success("Testimonial deleted");
-            fetchTestimonials();
+            setTestimonials(prev => prev.filter(t => t.id !== id));
         } catch (error: any) { toast.error(error.message); }
-    };
+    }, []);
 
     return (
         <div className="space-y-8 animate-fade-in">
@@ -122,9 +185,7 @@ export const TestimonialsSection = () => {
                 <Button
                     onClick={() => {
                         if (isAdding) {
-                            setIsAdding(false);
-                            setEditingId(null);
-                            setForm({ name: "", role: "", content: "", rating: 5, image_url: undefined });
+                            resetForm();
                         } else {
                             setIsAdding(true);
                         }
@@ -138,7 +199,6 @@ export const TestimonialsSection = () => {
             {isAdding && (
                 <div className="bg-[#110C1D] border border-white/5 rounded-xl p-6 space-y-4 shadow-sm">
                     <div className="flex gap-6 items-start">
-                        {/* Image Upload Area */}
                         <div className="w-24 h-24 flex-shrink-0 relative group">
                             <div className="w-full h-full rounded-full overflow-hidden bg-black/40 border border-white/10 flex items-center justify-center">
                                 {form.image_url ? (
@@ -179,18 +239,20 @@ export const TestimonialsSection = () => {
                                     value={form.name}
                                     onChange={e => setForm({ ...form, name: e.target.value })}
                                     className="bg-black/20 border-white/5 focus:border-purple-500/30 text-slate-200"
+                                    required
                                 />
                                 <Input
                                     placeholder="Client Role (e.g. CEO)"
                                     value={form.role}
                                     onChange={e => setForm({ ...form, role: e.target.value })}
                                     className="bg-black/20 border-white/5 focus:border-purple-500/30 text-slate-200"
+                                    required
                                 />
                             </div>
                             <div className="flex items-center gap-4">
                                 <span className="text-sm font-semibold text-slate-400">Rating:</span>
                                 {[1, 2, 3, 4, 5].map(s => (
-                                    <button key={s} onClick={() => setForm({ ...form, rating: s })} className={`text-xl transition-colors ${form.rating >= s ? 'text-amber-500' : 'text-slate-700 hover:text-amber-500/50'}`}>★</button>
+                                    <button key={s} type="button" onClick={() => setForm({ ...form, rating: s })} className={`text-xl transition-colors ${form.rating >= s ? 'text-amber-500' : 'text-slate-700 hover:text-amber-500/50'}`}>★</button>
                                 ))}
                             </div>
                         </div>
@@ -201,6 +263,7 @@ export const TestimonialsSection = () => {
                         value={form.content}
                         onChange={e => setForm({ ...form, content: e.target.value })}
                         className="min-h-[100px] bg-black/20 border-white/5 focus:border-purple-500/30 text-slate-200 resize-none"
+                        required
                     />
                     <Button onClick={handleSave} disabled={uploading} className="w-full bg-purple-600 hover:bg-purple-700 text-white">
                         {editingId ? "Update Testimonial" : "Save Testimonial"}
@@ -209,47 +272,15 @@ export const TestimonialsSection = () => {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {testimonials.map(t => (
-                    <div key={t.id} className="bg-[#110C1D] border border-white/5 rounded-xl p-6 flex flex-col justify-between group hover:border-white/10 transition-all duration-300 shadow-sm">
-                        <div>
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="h-12 w-12 rounded-full overflow-hidden bg-purple-500/10 flex items-center justify-center border border-purple-500/10">
-                                    {t.image_url ? (
-                                        <img src={t.image_url} alt={t.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="text-lg font-bold text-purple-400">{t.name.charAt(0)}</div>
-                                    )}
-                                </div>
-                                <div className="flex gap-1">
-                                    {Array.from({ length: 5 }).map((_, i) => (
-                                        <Star key={i} className={`h-3 w-3 ${i < t.rating ? 'fill-amber-500 text-amber-500' : 'text-slate-700'}`} />
-                                    ))}
-                                </div>
-                            </div>
-                            <p className="text-sm text-slate-400 italic mb-4 leading-relaxed line-clamp-4">"{t.content}"</p>
-                        </div>
-                        <div className="flex justify-between items-end border-t border-white/5 pt-4 mt-auto">
-                            <div>
-                                <div className="font-semibold text-sm tracking-tight text-white">{t.name}</div>
-                                <div className="text-[10px] text-purple-400 uppercase font-bold">{t.role}</div>
-                            </div>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => handleEdit(t)}
-                                    className="p-1.5 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-colors"
-                                >
-                                    <Edit2 className="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(t.id)}
-                                    className="p-1.5 hover:bg-rose-500/10 rounded-lg text-rose-500 transition-colors"
-                                >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                ))}
+                {loading && testimonials.length === 0 ? (
+                    <div className="col-span-full py-12 text-center"><Loader2 className="h-8 w-8 animate-spin text-purple-500 mx-auto" /></div>
+                ) : testimonials.length === 0 ? (
+                    <div className="col-span-full py-12 text-center text-slate-500 italic">No testimonials yet.</div>
+                ) : (
+                    testimonials.map(t => (
+                        <TestimonialCard key={t.id} testimonial={t} onEdit={handleEdit} onDelete={handleDelete} />
+                    ))
+                )}
             </div>
         </div>
     );

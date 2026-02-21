@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { servicesSupabase } from "@/integrations/supabase/servicesClient";
 import {
     Users,
     Briefcase,
@@ -46,6 +47,79 @@ const trafficData = [
     { name: 'Sun', traffic: 5320, conv: 320 },
 ];
 
+// Memoized StatCard to prevent unnecessary re-renders in the dashboard grid
+const StatCard = React.memo(({ stat, index, onUpdate }: any) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [form, setForm] = useState({ value: stat.value, label: stat.label });
+    const Icon = ICON_MAP[stat.icon_key] || Users;
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const success = await onUpdate(stat.id, form);
+        if (success) setIsEditing(false);
+    };
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: index * 0.05 }}
+            className="bg-[#110C1D] border border-white/5 p-5 relative overflow-hidden group rounded-xl shadow-sm hover:border-white/10 transition-all"
+        >
+            {isEditing ? (
+                <form onSubmit={handleSubmit} className="relative z-10 space-y-3">
+                    <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{stat.title}</span>
+                    </div>
+                    <Input
+                        value={form.value}
+                        onChange={e => setForm(prev => ({ ...prev, value: e.target.value }))}
+                        className="h-9 bg-black/20 border-white/10 font-bold text-lg text-white"
+                        placeholder="Value"
+                        autoFocus
+                    />
+                    <Input
+                        value={form.label}
+                        onChange={e => setForm(prev => ({ ...prev, label: e.target.value }))}
+                        className="h-8 bg-black/20 border-white/10 text-xs text-slate-400"
+                        placeholder="Label"
+                    />
+                    <div className="flex gap-2 mt-2">
+                        <Button type="submit" size="sm" className="h-7 text-xs bg-purple-600 hover:bg-purple-700 text-white px-3">Save</Button>
+                        <Button type="button" size="sm" variant="ghost" className="h-7 text-xs text-slate-400" onClick={() => setIsEditing(false)}>Cancel</Button>
+                    </div>
+                </form>
+            ) : (
+                <div className="relative">
+                    <div className="flex items-start justify-between mb-4">
+                        <div className="p-2 rounded-lg bg-white/[0.03] text-slate-400 group-hover:text-purple-400 transition-colors border border-white/[0.02]">
+                            <Icon className="h-4 w-4" />
+                        </div>
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{stat.title}</div>
+                    </div>
+                    <div>
+                        <div className="text-2xl font-bold text-white tracking-tight">{stat.value}</div>
+                        <div className="mt-1 text-xs text-slate-500 font-medium">{stat.label}</div>
+                    </div>
+
+                    <button
+                        onClick={() => {
+                            setForm({ value: stat.value, label: stat.label });
+                            setIsEditing(true);
+                        }}
+                        className="absolute bottom-0 right-0 p-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:bg-white/5 rounded-md text-white hover:text-white"
+                    >
+                        <Edit2 className="h-3 w-3" />
+                    </button>
+                </div>
+            )}
+        </motion.div>
+    );
+});
+
+StatCard.displayName = 'StatCard';
+
 export const DashboardSection = () => {
     const [stats, setStats] = useState<any[]>([]);
     const [leads, setLeads] = useState<any[]>([]);
@@ -53,12 +127,8 @@ export const DashboardSection = () => {
     const [payments, setPayments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Edit State for Stats
-    const [editingStat, setEditingStat] = useState<any>(null);
-    const [editForm, setEditForm] = useState({ value: "", label: "" });
-
-    const fetchAllData = async () => {
-        setLoading(true);
+    const fetchAllData = useCallback(async (showLoading = true) => {
+        if (showLoading) setLoading(true);
         try {
             // 1. Fetch Stats
             const { data: statsData } = await supabase
@@ -68,61 +138,61 @@ export const DashboardSection = () => {
 
             if (statsData) setStats(statsData);
 
-            // 2. Fetch Recent Leads (Limit 5)
-            const { data: leadsData } = await supabase
+            // 2. Fetch Recent Leads (Limit 5 from Account 2)
+            const { data: leadsData } = await servicesSupabase
                 .from('leads')
                 .select('*')
                 .order('created_at', { ascending: false })
                 .limit(5);
 
-            if (leadsData) setLeads(leadsData);
+            if (leadsData) setLeads(leadsData || []);
 
-            // 3. Fetch Active Projects (Limit 4)
-            const { data: projectsData } = await supabase
+            // 3. Fetch Active Projects (Limit 4 from Project Tracker)
+            const { data: projectsData } = await servicesSupabase
                 .from('projects')
                 .select('*')
                 .order('created_at', { ascending: false })
                 .limit(4);
 
-            if (projectsData) setProjects(projectsData);
+            if (projectsData) setProjects(projectsData || []);
 
-            // 4. Fetch Recent Payments (Limit 4)
+            // 4. Fetch Recent Payments (Limit 4 from Account 1)
             const { data: paymentsData } = await supabase
                 .from('payments')
                 .select('*')
-                .order('payment_date', { ascending: false })
+                .order('created_at', { ascending: false })
                 .limit(4);
 
-            if (paymentsData) setPayments(paymentsData);
+            if (paymentsData) setPayments(paymentsData || []);
 
         } catch (error) {
             console.error("Error fetching dashboard data:", error);
         } finally {
-            setLoading(false);
+            if (showLoading) setLoading(false);
         }
-    };
+    }, [supabase, servicesSupabase]);
 
     useEffect(() => {
-        fetchAllData();
-    }, []);
+        fetchAllData(true);
+    }, [fetchAllData]);
 
-    const handleStatUpdate = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleStatUpdate = useCallback(async (id: string, formData: { value: string, label: string }) => {
         try {
             const { error } = await supabase
                 .from('dashboard_stats')
-                .update({ value: editForm.value, label: editForm.label })
-                .eq('id', editingStat.id);
+                .update({ value: formData.value, label: formData.label })
+                .eq('id', id);
 
             if (error) throw error;
 
             toast.success("Statistic updated");
-            setEditingStat(null);
-            fetchAllData(); // Refresh to show changes
+            fetchAllData(false); // Refresh data without showing global loader
+            return true;
         } catch (error: any) {
             toast.error("Failed to update: " + error.message);
+            return false;
         }
-    };
+    }, [supabase, fetchAllData]);
 
     const formatTimeAgo = (dateString: string) => {
         const date = new Date(dateString);
@@ -135,70 +205,6 @@ export const DashboardSection = () => {
         return `${Math.floor(diffInSeconds / 86400)}d ago`;
     };
 
-    // Memoized StatCard to prevent unnecessary re-renders in the dashboard grid
-    const StatCard = React.memo(({ stat, index, editingStat, editForm, setEditForm, handleStatUpdate, setEditingStat }: any) => {
-        const Icon = ICON_MAP[stat.icon_key] || Users;
-        const isEditingThis = editingStat?.id === stat.id;
-
-        return (
-            <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="bg-[#110C1D] border border-white/5 p-5 relative overflow-hidden group rounded-xl shadow-sm hover:border-white/10 transition-all"
-            >
-                {isEditingThis ? (
-                    <form onSubmit={handleStatUpdate} className="relative z-10 space-y-3">
-                        <div className="flex items-center gap-2 mb-2">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{stat.title}</span>
-                        </div>
-                        <Input
-                            value={editForm.value}
-                            onChange={e => setEditForm((prev: any) => ({ ...prev, value: e.target.value }))}
-                            className="h-9 bg-black/20 border-white/10 font-bold text-lg text-white"
-                            placeholder="Value"
-                            autoFocus
-                        />
-                        <Input
-                            value={editForm.label}
-                            onChange={e => setEditForm((prev: any) => ({ ...prev, label: e.target.value }))}
-                            className="h-8 bg-black/20 border-white/10 text-xs text-slate-400"
-                            placeholder="Label"
-                        />
-                        <div className="flex gap-2 mt-2">
-                            <Button type="submit" size="sm" className="h-7 text-xs bg-purple-600 hover:bg-purple-700 text-white px-3">Save</Button>
-                            <Button type="button" size="sm" variant="ghost" className="h-7 text-xs text-slate-400" onClick={() => setEditingStat(null)}>Cancel</Button>
-                        </div>
-                    </form>
-                ) : (
-                    <div className="relative">
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="p-2 rounded-lg bg-white/[0.03] text-slate-400 group-hover:text-purple-400 transition-colors border border-white/[0.02]">
-                                <Icon className="h-4 w-4" />
-                            </div>
-                            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{stat.title}</div>
-                        </div>
-                        <div>
-                            <div className="text-2xl font-bold text-white tracking-tight">{stat.value}</div>
-                            <div className="mt-1 text-xs text-slate-500 font-medium">{stat.label}</div>
-                        </div>
-
-                        <button
-                            onClick={() => {
-                                setEditingStat(stat);
-                                setEditForm({ value: stat.value, label: stat.label });
-                            }}
-                            className="absolute bottom-0 right-0 p-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:bg-white/5 rounded-md text-white hover:text-white"
-                        >
-                            <Edit2 className="h-3 w-3" />
-                        </button>
-                    </div>
-                )}
-            </motion.div>
-        );
-    });
-
-    StatCard.displayName = 'StatCard';
 
     if (loading && stats.length === 0) {
         return (
@@ -217,11 +223,7 @@ export const DashboardSection = () => {
                         key={stat.id}
                         stat={stat}
                         index={i}
-                        editingStat={editingStat}
-                        editForm={editForm}
-                        setEditForm={setEditForm}
-                        handleStatUpdate={handleStatUpdate}
-                        setEditingStat={setEditingStat}
+                        onUpdate={handleStatUpdate}
                     />
                 )) : (
                     <div className="col-span-5 text-center text-slate-500 py-10 text-sm">No stats available</div>
@@ -358,9 +360,17 @@ export const DashboardSection = () => {
                 {/* Active Projects */}
                 <div className="bg-[#110C1D] border border-white/5 rounded-xl flex flex-col overflow-hidden shadow-sm">
                     <div className="px-6 py-4 flex justify-between items-center bg-white/[0.01] border-b border-white/5">
-                        <h3 className="font-semibold text-slate-200 text-sm">Active Projects</h3>
-                        <Button variant="ghost" size="sm" className="h-7 text-xs text-slate-500 hover:text-white">
-                            View Portfolio <ChevronRight className="ml-1 h-3 w-3" />
+                        <h3 className="font-semibold text-slate-200 text-sm">Active Project Tracker</h3>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs text-slate-500 hover:text-white"
+                            onClick={() => {
+                                localStorage.setItem("ms-admin-active-tab", "portfolio");
+                                window.location.reload();
+                            }}
+                        >
+                            View Tracker <ChevronRight className="ml-1 h-3 w-3" />
                         </Button>
                     </div>
                     <div className="divide-y divide-white/5">
@@ -385,7 +395,7 @@ export const DashboardSection = () => {
                                         project.status === 'in_progress' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/10' :
                                             'bg-violet-500/10 text-violet-400 border-violet-500/10'
                                         }`}>
-                                        {project.status.replace('_', ' ')}
+                                        {project.status?.replace('_', ' ') || 'Unknown'}
                                     </span>
                                 </div>
                             </div>
@@ -397,7 +407,15 @@ export const DashboardSection = () => {
                 <div className="bg-[#110C1D] border border-white/5 rounded-xl flex flex-col overflow-hidden shadow-sm">
                     <div className="px-6 py-4 flex justify-between items-center border-b border-white/5 bg-white/[0.01]">
                         <h3 className="font-semibold text-slate-200 text-sm">Recent Payments</h3>
-                        <Button variant="ghost" size="sm" className="h-7 text-xs text-slate-500 hover:text-white">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs text-slate-500 hover:text-white"
+                            onClick={() => {
+                                localStorage.setItem("ms-admin-active-tab", "payments");
+                                window.location.reload();
+                            }}
+                        >
                             View All <ChevronRight className="ml-1 h-3 w-3" />
                         </Button>
                     </div>

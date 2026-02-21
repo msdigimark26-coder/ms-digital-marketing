@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus, Trash2, Edit2, Search, Filter, Mail, Phone, Clock, ExternalLink, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { motion, AnimatePresence } from "framer-motion";
+import { Plus, Trash2, Edit2, Search, Filter, Mail, Phone, Clock, Loader2 } from "lucide-react";
+import { servicesSupabase as supabase } from "@/integrations/supabase/servicesClient";
+import { motion } from "framer-motion";
 
 interface Lead {
     id: string;
@@ -19,6 +19,80 @@ interface Lead {
     message: string;
     created_at: string;
 }
+
+const LeadRow = React.memo(({
+    lead,
+    onUpdateStatus,
+    onDelete
+}: {
+    lead: Lead,
+    onUpdateStatus: (id: string, status: string) => void,
+    onDelete: (id: string) => void
+}) => (
+    <motion.div
+        layout
+        initial={{ opacity: 0, y: 10 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="bg-[#110C1D] border border-white/5 rounded-xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 group hover:border-white/10 transition-all shadow-sm"
+    >
+        <div className="flex flex-col md:flex-row gap-6 flex-1 min-w-0">
+            <div className="h-12 w-12 rounded-xl bg-purple-500/10 border border-purple-500/10 flex items-center justify-center text-lg font-bold text-purple-400 flex-shrink-0">
+                {lead.name.substring(0, 1).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+                <div className="flex items-center gap-3">
+                    <h3 className="font-semibold text-lg text-slate-200 group-hover:text-white transition-colors">{lead.name}</h3>
+                    <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-widest border ${lead.status === 'new' ? 'bg-blue-500/10 text-blue-400 border-blue-500/10' :
+                        lead.status === 'contacted' ? 'bg-teal-500/10 text-teal-400 border-teal-500/10' :
+                            'bg-white/5 text-slate-500 border-white/5'
+                        }`}>
+                        {lead.status}
+                    </span>
+                </div>
+                <div className="flex flex-wrap gap-4 mt-2">
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <Mail className="h-3 w-3" /> {lead.email}
+                    </div>
+                    {lead.phone && (
+                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                            <Phone className="h-3 w-3" /> {lead.phone}
+                        </div>
+                    )}
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <Clock className="h-3 w-3" /> {new Date(lead.created_at).toLocaleDateString()}
+                    </div>
+                </div>
+                {lead.message && (
+                    <p className="mt-3 text-sm text-slate-400 line-clamp-1 italic">"{lead.message}"</p>
+                )}
+            </div>
+        </div>
+
+        <div className="flex items-center gap-3 w-full md:w-auto pt-4 md:pt-0 border-t md:border-t-0 border-white/5">
+            <select
+                className="flex-1 md:flex-none bg-black/20 border border-white/5 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-purple-500/20 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                value={lead.status}
+                onChange={e => onUpdateStatus(lead.id, e.target.value)}
+            >
+                <option value="new">Set New</option>
+                <option value="contacted">Set Contacted</option>
+                <option value="closed">Set Closed</option>
+            </select>
+            <button className="p-2 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-all">
+                <Edit2 className="h-4 w-4" />
+            </button>
+            <button
+                onClick={() => onDelete(lead.id)}
+                className="p-2 hover:bg-rose-500/10 rounded-lg text-rose-500 transition-all"
+            >
+                <Trash2 className="h-4 w-4" />
+            </button>
+        </div>
+    </motion.div>
+));
+
+LeadRow.displayName = "LeadRow";
 
 export const LeadsSection = () => {
     const [leads, setLeads] = useState<Lead[]>([]);
@@ -36,8 +110,8 @@ export const LeadsSection = () => {
     });
     const [submitting, setSubmitting] = useState(false);
 
-    const fetchLeads = async () => {
-        setLoading(true);
+    const fetchLeads = useCallback(async (showLoading = true) => {
+        if (showLoading) setLoading(true);
         try {
             const { data, error } = await supabase
                 .from("leads")
@@ -51,48 +125,47 @@ export const LeadsSection = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchLeads();
-    }, []);
+    }, [fetchLeads]);
 
-    const updateStatus = async (id: string, status: string) => {
+    const updateStatus = useCallback(async (id: string, status: string) => {
         try {
+            setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l));
             const { error } = await supabase
                 .from("leads")
                 .update({ status })
                 .eq("id", id);
             if (error) throw error;
             toast.success("Status updated");
-            fetchLeads();
         } catch (error: any) {
             toast.error(error.message);
+            fetchLeads(false);
         }
-    };
+    }, [fetchLeads]);
 
-    const deleteLead = async (id: string) => {
+    const deleteLead = useCallback(async (id: string) => {
         if (!confirm("Are you sure?")) return;
         try {
-            const { error } = await supabase
-                .from("leads")
-                .delete()
-                .eq("id", id);
+            const { error } = await supabase.from("leads").delete().eq("id", id);
             if (error) throw error;
             toast.success("Lead deleted");
-            fetchLeads();
+            setLeads(prev => prev.filter(l => l.id !== id));
         } catch (error: any) {
             toast.error(error.message);
         }
-    };
+    }, []);
 
-    const filteredLeads = leads.filter(l =>
-        (l.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            l.email?.toLowerCase().includes(searchTerm.toLowerCase())) &&
-        (filterStatus === "all" || l.status === filterStatus)
-    );
+    const filteredLeads = useMemo(() => {
+        return leads.filter(l =>
+            (l.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                l.email?.toLowerCase().includes(searchTerm.toLowerCase())) &&
+            (filterStatus === "all" || l.status === filterStatus)
+        );
+    }, [leads, searchTerm, filterStatus]);
 
-    // ...existing code...
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
@@ -101,21 +174,12 @@ export const LeadsSection = () => {
         e.preventDefault();
         setSubmitting(true);
         try {
-            const { error } = await supabase.from("leads").insert([
-                {
-                    name: form.name,
-                    email: form.email,
-                    phone: form.phone,
-                    status: form.status,
-                    source: form.source,
-                    message: form.message,
-                },
-            ]);
+            const { error } = await supabase.from("leads").insert([form]);
             if (error) throw error;
             toast.success("Lead added");
             setOpen(false);
             setForm({ name: "", email: "", phone: "", status: "new", source: "manual", message: "" });
-            fetchLeads();
+            fetchLeads(false);
         } catch (error: any) {
             toast.error(error.message);
         } finally {
@@ -141,30 +205,15 @@ export const LeadsSection = () => {
                             <DialogTitle>Add Manual Lead</DialogTitle>
                         </DialogHeader>
                         <form onSubmit={handleAddLead} className="space-y-4">
-                            <div>
-                                <Label htmlFor="name">Name</Label>
-                                <Input id="name" name="name" value={form.name} onChange={handleFormChange} required disabled={submitting} />
-                            </div>
-                            <div>
-                                <Label htmlFor="email">Email</Label>
-                                <Input id="email" name="email" type="email" value={form.email} onChange={handleFormChange} required disabled={submitting} />
-                            </div>
-                            <div>
-                                <Label htmlFor="phone">Phone</Label>
-                                <Input id="phone" name="phone" value={form.phone} onChange={handleFormChange} disabled={submitting} />
-                            </div>
-                            <div>
-                                <Label htmlFor="message">Message</Label>
-                                <Textarea id="message" name="message" value={form.message} onChange={handleFormChange} disabled={submitting} />
-                            </div>
+                            <div><Label htmlFor="name">Name</Label><Input id="name" name="name" value={form.name} onChange={handleFormChange} required disabled={submitting} /></div>
+                            <div><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" value={form.email} onChange={handleFormChange} required disabled={submitting} /></div>
+                            <div><Label htmlFor="phone">Phone</Label><Input id="phone" name="phone" value={form.phone} onChange={handleFormChange} disabled={submitting} /></div>
+                            <div><Label htmlFor="message">Message</Label><Textarea id="message" name="message" value={form.message} onChange={handleFormChange} disabled={submitting} /></div>
                             <DialogFooter>
                                 <Button type="submit" disabled={submitting} className="bg-purple-600 hover:bg-purple-700 text-white">
-                                    {submitting ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
-                                    Add Lead
+                                    {submitting && <Loader2 className="animate-spin h-4 w-4 mr-2" />} Add Lead
                                 </Button>
-                                <DialogClose asChild>
-                                    <Button type="button" variant="outline">Cancel</Button>
-                                </DialogClose>
+                                <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
                             </DialogFooter>
                         </form>
                     </DialogContent>
@@ -174,100 +223,26 @@ export const LeadsSection = () => {
             <div className="bg-[#110C1D] border border-white/5 rounded-xl p-6 flex flex-col md:flex-row gap-4 items-center shadow-sm">
                 <div className="relative flex-1 w-full">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                    <Input
-                        placeholder="Search by name or email..."
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="pl-10 bg-black/20 border-white/5 text-slate-200 h-10 rounded-lg focus:ring-1 focus:ring-purple-500/20 focus:border-purple-500/30"
-                    />
+                    <Input placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 bg-black/20 border-white/5 text-slate-200 h-10 rounded-lg" />
                 </div>
                 <div className="flex gap-2 w-full md:w-auto">
-                    <select
-                        className="bg-black/20 border border-white/5 rounded-lg px-4 py-2 text-sm outline-none focus:ring-1 focus:ring-purple-500/20 h-10 text-slate-300 min-w-[140px]"
-                        value={filterStatus}
-                        onChange={e => setFilterStatus(e.target.value)}
-                    >
+                    <select className="bg-black/20 border border-white/5 rounded-lg px-4 py-2 text-sm outline-none text-slate-300 min-w-[140px]" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
                         <option value="all">All Status</option>
                         <option value="new">New</option>
                         <option value="contacted">Contacted</option>
                         <option value="closed">Closed</option>
                     </select>
-                    <Button variant="outline" size="icon" className="border-white/5 bg-black/20 h-10 w-10 text-slate-400 hover:text-white hover:bg-white/5">
-                        <Filter className="h-4 w-4" />
-                    </Button>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4">
-                {loading ? (
-                    <div className="flex flex-col items-center justify-center py-20">
-                        <Loader2 className="h-10 w-10 animate-spin text-purple-500 opacity-20" />
-                    </div>
+                {loading && leads.length === 0 ? (
+                    <div className="flex justify-center py-20"><Loader2 className="h-10 w-10 animate-spin text-purple-500 opacity-20" /></div>
                 ) : filteredLeads.length === 0 ? (
-                    <div className="bg-[#110C1D] border border-white/5 rounded-xl p-20 text-center text-slate-500 italic border-dashed">
-                        No leads found matching your criteria.
-                    </div>
+                    <div className="bg-[#110C1D] border border-white/5 rounded-xl p-20 text-center text-slate-500 italic border-dashed">No leads found.</div>
                 ) : (
                     filteredLeads.map((lead) => (
-                        <motion.div
-                            layout
-                            key={lead.id}
-                            className="bg-[#110C1D] border border-white/5 rounded-xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 group hover:border-white/10 transition-all shadow-sm"
-                        >
-                            <div className="flex flex-col md:flex-row gap-6 flex-1 min-w-0">
-                                <div className="h-12 w-12 rounded-xl bg-purple-500/10 border border-purple-500/10 flex items-center justify-center text-lg font-bold text-purple-400 flex-shrink-0">
-                                    {lead.name.substring(0, 1).toUpperCase()}
-                                </div>
-                                <div className="min-w-0">
-                                    <div className="flex items-center gap-3">
-                                        <h3 className="font-semibold text-lg text-slate-200 group-hover:text-white transition-colors">{lead.name}</h3>
-                                        <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-widest border ${lead.status === 'new' ? 'bg-blue-500/10 text-blue-400 border-blue-500/10' :
-                                            lead.status === 'contacted' ? 'bg-teal-500/10 text-teal-400 border-teal-500/10' :
-                                                'bg-white/5 text-slate-500 border-white/5'
-                                            }`}>
-                                            {lead.status}
-                                        </span>
-                                    </div>
-                                    <div className="flex flex-wrap gap-4 mt-2">
-                                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                                            <Mail className="h-3 w-3" /> {lead.email}
-                                        </div>
-                                        {lead.phone && (
-                                            <div className="flex items-center gap-2 text-xs text-slate-500">
-                                                <Phone className="h-3 w-3" /> {lead.phone}
-                                            </div>
-                                        )}
-                                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                                            <Clock className="h-3 w-3" /> {new Date(lead.created_at).toLocaleDateString()}
-                                        </div>
-                                    </div>
-                                    {lead.message && (
-                                        <p className="mt-3 text-sm text-slate-400 line-clamp-1 italic">"{lead.message}"</p>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-3 w-full md:w-auto pt-4 md:pt-0 border-t md:border-t-0 border-white/5">
-                                <select
-                                    className="flex-1 md:flex-none bg-black/20 border border-white/5 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-purple-500/20 text-slate-400 hover:text-white transition-colors cursor-pointer"
-                                    value={lead.status}
-                                    onChange={e => updateStatus(lead.id, e.target.value)}
-                                >
-                                    <option value="new">Set New</option>
-                                    <option value="contacted">Set Contacted</option>
-                                    <option value="closed">Set Closed</option>
-                                </select>
-                                <button className="p-2 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-all">
-                                    <Edit2 className="h-4 w-4" />
-                                </button>
-                                <button
-                                    onClick={() => deleteLead(lead.id)}
-                                    className="p-2 hover:bg-rose-500/10 rounded-lg text-rose-500 transition-all"
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </button>
-                            </div>
-                        </motion.div>
+                        <LeadRow key={lead.id} lead={lead} onUpdateStatus={updateStatus} onDelete={deleteLead} />
                     ))
                 )}
             </div>

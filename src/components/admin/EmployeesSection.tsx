@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +17,7 @@ import {
     EyeOff
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { motion } from "framer-motion";
 
 interface Employee {
     id: string;
@@ -30,9 +31,113 @@ interface Employee {
     updated_at: string;
 }
 
+const EmployeeCard = React.memo(({
+    employee,
+    onToggleActive,
+    onEdit,
+    onDelete,
+    onMove,
+    isFirst,
+    isLast
+}: {
+    employee: Employee,
+    onToggleActive: (e: Employee) => void,
+    onEdit: (e: Employee) => void,
+    onDelete: (id: string) => void,
+    onMove: (e: Employee, dir: 'up' | 'down') => void,
+    isFirst: boolean,
+    isLast: boolean
+}) => (
+    <motion.div
+        initial={{ opacity: 0, scale: 0.98 }}
+        whileInView={{ opacity: 1, scale: 1 }}
+        viewport={{ once: true }}
+        className={`bg-[#110C1D] border ${employee.is_active ? 'border-white/5' : 'border-rose-500/20'} rounded-xl p-4 flex flex-col group hover:border-white/10 transition-all duration-300 shadow-sm relative`}
+    >
+        {/* Active/Inactive Badge */}
+        <div className="absolute top-2 right-2 z-10">
+            <button
+                onClick={() => onToggleActive(employee)}
+                className={`p-1.5 rounded-lg transition-colors ${employee.is_active
+                    ? 'bg-green-500/10 text-green-500 hover:bg-green-500/20'
+                    : 'bg-rose-500/10 text-rose-500 hover:bg-rose-500/20'
+                    }`}
+                title={employee.is_active ? 'Active' : 'Inactive'}
+            >
+                {employee.is_active ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+            </button>
+        </div>
+
+        {/* Employee Image */}
+        <div className="w-full aspect-square rounded-lg overflow-hidden bg-black/40 mb-3 flex items-center justify-center">
+            <img
+                src={employee.image_url}
+                alt={employee.name}
+                className="w-full h-full object-contain"
+                loading="lazy"
+            />
+        </div>
+
+        {/* Employee Info */}
+        <div className="flex-1">
+            <h3 className="font-semibold text-sm text-white mb-1 truncate">
+                {employee.name}
+            </h3>
+            <p className="text-xs text-purple-400 mb-2 line-clamp-2">
+                {employee.title}
+            </p>
+            <p className="text-xs text-slate-400 line-clamp-3 leading-relaxed">
+                {employee.description}
+            </p>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-between items-center border-t border-white/5 pt-3 mt-3">
+            <div className="flex gap-1">
+                <button
+                    onClick={() => onEdit(employee)}
+                    className="p-1.5 rounded hover:bg-white/5 text-slate-400 hover:text-purple-400 transition-all"
+                    title="Edit"
+                >
+                    <Edit2 className="h-3.5 w-3.5" />
+                </button>
+                <button
+                    onClick={() => onDelete(employee.id)}
+                    className="p-1.5 rounded hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 transition-all"
+                    title="Delete"
+                >
+                    <Trash2 className="h-3.5 w-3.5" />
+                </button>
+            </div>
+            <div className="flex gap-1">
+                <button
+                    onClick={() => onMove(employee, 'up')}
+                    disabled={isFirst}
+                    className="p-1.5 rounded hover:bg-white/5 text-slate-500 hover:text-white transition-all disabled:opacity-10 disabled:cursor-not-allowed"
+                    title="Move Up"
+                >
+                    <MoveUp className="h-3 w-3" />
+                </button>
+                <button
+                    onClick={() => onMove(employee, 'down')}
+                    disabled={isLast}
+                    className="p-1.5 rounded hover:bg-white/5 text-slate-500 hover:text-white transition-all disabled:opacity-10 disabled:cursor-not-allowed"
+                    title="Move Down"
+                >
+                    <MoveDown className="h-3 w-3" />
+                </button>
+            </div>
+        </div>
+    </motion.div>
+));
+
+EmployeeCard.displayName = "EmployeeCard";
+
 export const EmployeesSection = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showInactive, setShowInactive] = useState(true);
+    const [actionId, setActionId] = useState<string | null>(null);
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState<{
@@ -44,8 +149,8 @@ export const EmployeesSection = () => {
     }>({ name: "", title: "", description: "", image_url: "", is_active: true });
     const [uploading, setUploading] = useState(false);
 
-    const fetchEmployees = async () => {
-        setLoading(true);
+    const fetchEmployees = useCallback(async () => {
+        if (employees.length === 0) setLoading(true);
         try {
             const { data, error } = await supabase
                 .from("employees")
@@ -59,11 +164,11 @@ export const EmployeesSection = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [employees.length]);
 
     useEffect(() => {
         fetchEmployees();
-    }, []);
+    }, [fetchEmployees]);
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         try {
@@ -84,9 +189,7 @@ export const EmployeesSection = () => {
                 .from('employee-images')
                 .upload(filePath, file);
 
-            if (uploadError) {
-                throw uploadError;
-            }
+            if (uploadError) throw uploadError;
 
             const { data: { publicUrl } } = supabase.storage
                 .from('employee-images')
@@ -103,42 +206,31 @@ export const EmployeesSection = () => {
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
-
         if (!form.name || !form.title || !form.description || !form.image_url) {
             toast.error("All fields are required");
             return;
         }
 
-        console.log("Attempting to save employee:", form);
-
         try {
             if (editingId) {
-                console.log("Updating employee with ID:", editingId);
-                const updateData = {
-                    name: form.name,
-                    title: form.title,
-                    description: form.description,
-                    image_url: form.image_url,
-                    is_active: form.is_active
-                };
-                console.log("Update data:", updateData);
-
                 const { data, error } = await supabase
                     .from("employees")
-                    .update(updateData)
+                    .update({
+                        name: form.name,
+                        title: form.title,
+                        description: form.description,
+                        image_url: form.image_url,
+                        is_active: form.is_active
+                    })
                     .eq("id", editingId)
                     .select();
 
-                if (error) {
-                    console.error("Update error:", error);
-                    throw error;
+                if (error) throw error;
+                if (data?.[0]) {
+                    setEmployees(prev => prev.map(e => e.id === editingId ? data[0] : e));
                 }
-
-                console.log("Update response:", data);
                 toast.success("Employee updated successfully");
             } else {
-                console.log("Creating new employee");
-                // Get the max display_order
                 const { data: maxOrderData } = await supabase
                     .from("employees")
                     .select("display_order")
@@ -149,109 +241,113 @@ export const EmployeesSection = () => {
                     ? maxOrderData[0].display_order + 1
                     : 1;
 
-                const insertData = {
-                    name: form.name,
-                    title: form.title,
-                    description: form.description,
-                    image_url: form.image_url,
-                    is_active: form.is_active,
-                    display_order: nextOrder
-                };
-                console.log("Insert data:", insertData);
-
                 const { data, error } = await supabase
                     .from("employees")
-                    .insert([insertData])
+                    .insert([{
+                        name: form.name,
+                        title: form.title,
+                        description: form.description,
+                        image_url: form.image_url,
+                        is_active: form.is_active,
+                        display_order: nextOrder
+                    }])
                     .select();
 
-                if (error) {
-                    console.error("Insert error:", error);
-                    throw error;
+                if (error) throw error;
+                if (data?.[0]) {
+                    setEmployees(prev => [...prev, data[0]]);
                 }
-
-                console.log("Insert response:", data);
                 toast.success("Employee added successfully");
             }
             setForm({ name: "", title: "", description: "", image_url: "", is_active: true });
             setIsAdding(false);
             setEditingId(null);
-            fetchEmployees();
         } catch (error: any) {
-            console.error("Save error:", error);
             toast.error(`Error: ${error.message || 'Failed to save employee'}`);
         }
     };
 
-    const handleEdit = (employee: Employee) => {
+    const handleEdit = useCallback((e: Employee) => {
         setForm({
-            name: employee.name,
-            title: employee.title,
-            description: employee.description,
-            image_url: employee.image_url,
-            is_active: employee.is_active,
+            name: e.name,
+            title: e.title,
+            description: e.description,
+            image_url: e.image_url,
+            is_active: e.is_active
         });
-        setEditingId(employee.id);
+        setEditingId(e.id);
         setIsAdding(true);
-    };
+    }, []);
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = useCallback(async (id: string) => {
         if (!confirm("Are you sure you want to delete this employee?")) return;
         try {
             const { error } = await supabase.from("employees").delete().eq("id", id);
             if (error) throw error;
             toast.success("Employee deleted successfully");
-            fetchEmployees();
+            setEmployees(prev => prev.filter(e => e.id !== id));
         } catch (error: any) {
             toast.error(error.message);
+            fetchEmployees();
         }
-    };
+    }, [fetchEmployees]);
 
-    const toggleActive = async (employee: Employee) => {
+    const toggleActive = useCallback(async (employee: Employee) => {
+        if (actionId) return;
         try {
-            const { error } = await supabase
-                .from("employees")
-                .update({ is_active: !employee.is_active })
-                .eq("id", employee.id);
-            if (error) throw error;
-            toast.success(`Employee ${!employee.is_active ? 'activated' : 'deactivated'}`);
-            fetchEmployees();
-        } catch (error: any) {
-            toast.error(error.message);
-        }
-    };
+            setActionId(employee.id);
+            const newStatus = !employee.is_active;
 
-    const moveEmployee = async (employee: Employee, direction: 'up' | 'down') => {
+            setEmployees(prev => prev.map(e => e.id === employee.id ? { ...e, is_active: newStatus } : e));
+
+            const { data, error } = await supabase
+                .from("employees")
+                .update({ is_active: newStatus })
+                .eq("id", employee.id)
+                .select();
+
+            if (error) throw error;
+            if (!data || data.length === 0) {
+                throw new Error("Update failed: No rows affected.");
+            }
+            toast.success(`Employee ${newStatus ? 'activated' : 'deactivated'}`);
+        } catch (error: any) {
+            toast.error(error.message || "Failed to sync status");
+            fetchEmployees();
+        } finally {
+            setActionId(null);
+        }
+    }, [actionId, fetchEmployees]);
+
+    const moveEmployee = useCallback(async (employee: Employee, direction: 'up' | 'down') => {
         const currentIndex = employees.findIndex(e => e.id === employee.id);
         if (
             (direction === 'up' && currentIndex === 0) ||
             (direction === 'down' && currentIndex === employees.length - 1)
-        ) {
-            return;
-        }
+        ) return;
 
-        const swapIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-        const swapEmployee = employees[swapIndex];
+        const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+        const targetEmployee = employees[targetIndex];
+
+        // Optimistic update
+        const newEmployees = [...employees];
+        newEmployees[currentIndex] = { ...targetEmployee, display_order: employee.display_order };
+        newEmployees[targetIndex] = { ...employee, display_order: targetEmployee.display_order };
+        setEmployees(newEmployees);
 
         try {
-            // Swap display orders
-            await supabase
-                .from("employees")
-                .update({ display_order: swapEmployee.display_order })
-                .eq("id", employee.id);
-
-            await supabase
-                .from("employees")
-                .update({ display_order: employee.display_order })
-                .eq("id", swapEmployee.id);
-
+            await Promise.all([
+                supabase.from("employees").update({ display_order: targetEmployee.display_order }).eq("id", employee.id),
+                supabase.from("employees").update({ display_order: employee.display_order }).eq("id", targetEmployee.id)
+            ]);
             toast.success("Order updated");
+        } catch (error) {
+            toast.error("Failed to update order");
             fetchEmployees();
-        } catch (error: any) {
-            toast.error(error.message);
         }
-    };
+    }, [employees, fetchEmployees]);
 
-    if (loading) {
+    if (loading && employees.length === 0) {
         return (
             <div className="flex items-center justify-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
@@ -259,12 +355,33 @@ export const EmployeesSection = () => {
         );
     }
 
+    const filteredEmployees = employees.filter(e => showInactive || e.is_active);
+
     return (
         <div className="space-y-8 animate-fade-in">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-white tracking-tight">Team Members</h2>
-                    <p className="text-sm text-slate-400 mt-1">Manage employee details displayed in the About section</p>
+                    <div className="flex items-center gap-3 mt-1">
+                        <p className="text-sm text-slate-400">Manage employee visibility and details</p>
+                        <span className="text-slate-600">|</span>
+                        <div className="flex items-center gap-1.5">
+                            <button
+                                type="button"
+                                onClick={() => setShowInactive(true)}
+                                className={`text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded transition-all ${showInactive ? 'bg-purple-500/20 text-purple-400' : 'text-slate-500 hover:text-slate-300'}`}
+                            >
+                                All Members
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setShowInactive(false)}
+                                className={`text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded transition-all ${!showInactive ? 'bg-purple-500/20 text-purple-400' : 'text-slate-500 hover:text-slate-300'}`}
+                            >
+                                Active Only
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <Button
                     onClick={() => {
@@ -286,7 +403,6 @@ export const EmployeesSection = () => {
                 <div className="bg-[#110C1D] border border-white/5 rounded-xl p-6 space-y-4 shadow-sm">
                     <form onSubmit={handleSave} className="space-y-4">
                         <div className="flex gap-6 items-start">
-                            {/* Profile Image Upload Area */}
                             <div className="w-32 h-32 flex-shrink-0 relative group">
                                 <div className="w-full h-full rounded-lg overflow-hidden bg-black/40 border border-white/10 flex items-center justify-center">
                                     {form.image_url ? (
@@ -322,11 +438,6 @@ export const EmployeesSection = () => {
                                     >
                                         <X className="h-4 w-4" />
                                     </button>
-                                )}
-                                {form.image_url && !uploading && (
-                                    <div className="absolute -bottom-6 left-0 right-0 text-center">
-                                        <span className="text-xs text-green-500 font-medium">✓ Uploaded</span>
-                                    </div>
                                 )}
                             </div>
 
@@ -382,91 +493,17 @@ export const EmployeesSection = () => {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {employees.map((employee, index) => (
-                    <div
+                {filteredEmployees.map((employee, index) => (
+                    <EmployeeCard
                         key={employee.id}
-                        className={`bg-[#110C1D] border ${employee.is_active ? 'border-white/5' : 'border-rose-500/20'
-                            } rounded-xl p-4 flex flex-col group hover:border-white/10 transition-all duration-300 shadow-sm relative`}
-                    >
-                        {/* Active/Inactive Badge */}
-                        <div className="absolute top-2 right-2 z-10">
-                            <button
-                                onClick={() => toggleActive(employee)}
-                                className={`p-1.5 rounded-lg transition-colors ${employee.is_active
-                                    ? 'bg-green-500/10 text-green-500 hover:bg-green-500/20'
-                                    : 'bg-rose-500/10 text-rose-500 hover:bg-rose-500/20'
-                                    }`}
-                                title={employee.is_active ? 'Active' : 'Inactive'}
-                            >
-                                {employee.is_active ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-                            </button>
-                        </div>
-
-                        {/* Employee Image */}
-                        <div className="w-full aspect-square rounded-lg overflow-hidden bg-black/40 mb-3 flex items-center justify-center">
-                            <img
-                                src={employee.image_url}
-                                alt={employee.name}
-                                className="w-full h-full object-contain"
-                            />
-                        </div>
-
-                        {/* Employee Info */}
-                        <div className="flex-1">
-                            <h3 className="font-semibold text-sm text-white mb-1 truncate">
-                                {employee.name}
-                            </h3>
-                            <p className="text-xs text-purple-400 mb-2 line-clamp-2">
-                                {employee.title}
-                            </p>
-                            <p className="text-xs text-slate-400 line-clamp-3 leading-relaxed">
-                                {employee.description}
-                            </p>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex justify-between items-center border-t border-white/5 pt-3 mt-3">
-                            <div className="flex gap-1">
-                                <button
-                                    onClick={() => moveEmployee(employee, 'up')}
-                                    disabled={index === 0}
-                                    className="p-1.5 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                    title="Move up"
-                                >
-                                    <MoveUp className="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                    onClick={() => moveEmployee(employee, 'down')}
-                                    disabled={index === employees.length - 1}
-                                    className="p-1.5 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                    title="Move down"
-                                >
-                                    <MoveDown className="h-3.5 w-3.5" />
-                                </button>
-                            </div>
-                            <div className="flex gap-1">
-                                <button
-                                    onClick={() => handleEdit(employee)}
-                                    className="p-1.5 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-colors"
-                                    title="Edit"
-                                >
-                                    <Edit2 className="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(employee.id)}
-                                    className="p-1.5 hover:bg-rose-500/10 rounded-lg text-rose-500 transition-colors"
-                                    title="Delete"
-                                >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Display Order Badge */}
-                        <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/40 rounded text-xs text-slate-400">
-                            #{employee.display_order}
-                        </div>
-                    </div>
+                        employee={employee}
+                        onToggleActive={toggleActive}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                        onMove={moveEmployee}
+                        isFirst={index === 0}
+                        isLast={index === filteredEmployees.length - 1}
+                    />
                 ))}
             </div>
 
