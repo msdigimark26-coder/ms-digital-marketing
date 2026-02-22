@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
+import { logActivity } from "@/utils/auditLogger";
 
 interface Employee {
     id: string;
@@ -139,6 +141,7 @@ export const EmployeesSection = () => {
     const [showInactive, setShowInactive] = useState(true);
     const [actionId, setActionId] = useState<string | null>(null);
     const [isAdding, setIsAdding] = useState(false);
+    const { user } = useAuth();
     const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState<{
         name: string;
@@ -228,6 +231,17 @@ export const EmployeesSection = () => {
                 if (error) throw error;
                 if (data?.[0]) {
                     setEmployees(prev => prev.map(e => e.id === editingId ? data[0] : e));
+
+                    // Log the update
+                    logActivity({
+                        adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                        adminEmail: user?.email || "Unknown",
+                        actionType: 'update',
+                        targetType: 'employee',
+                        targetId: editingId,
+                        targetData: data[0],
+                        description: `Updated employee: ${form.name}`
+                    });
                 }
                 toast.success("Employee updated successfully");
             } else {
@@ -256,6 +270,17 @@ export const EmployeesSection = () => {
                 if (error) throw error;
                 if (data?.[0]) {
                     setEmployees(prev => [...prev, data[0]]);
+
+                    // Log the creation
+                    logActivity({
+                        adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                        adminEmail: user?.email || "Unknown",
+                        actionType: 'create',
+                        targetType: 'employee',
+                        targetId: data[0].id,
+                        targetData: data[0],
+                        description: `Added new employee: ${form.name}`
+                    });
                 }
                 toast.success("Employee added successfully");
             }
@@ -284,6 +309,17 @@ export const EmployeesSection = () => {
         try {
             const { error } = await supabase.from("employees").delete().eq("id", id);
             if (error) throw error;
+
+            // Log the deletion
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'delete',
+                targetType: 'employee',
+                targetId: id,
+                description: `Deleted employee with ID: ${id}`
+            });
+
             toast.success("Employee deleted successfully");
             setEmployees(prev => prev.filter(e => e.id !== id));
         } catch (error: any) {
@@ -310,6 +346,17 @@ export const EmployeesSection = () => {
             if (!data || data.length === 0) {
                 throw new Error("Update failed: No rows affected.");
             }
+
+            // Log status toggle
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'update',
+                targetType: 'employee_status',
+                targetId: employee.id,
+                description: `${newStatus ? 'Activated' : 'Deactivated'} employee: ${employee.name}`
+            });
+
             toast.success(`Employee ${newStatus ? 'activated' : 'deactivated'}`);
         } catch (error: any) {
             toast.error(error.message || "Failed to sync status");

@@ -4,8 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Plus, Trash2, Edit2, Layers, Loader2, Star, Search, Share2, Code, Palette, Film, Box, X, Save, AlertCircle } from "lucide-react";
-import { servicesSupabase as supabase } from "@/integrations/supabase/servicesClient";
+import { supabase } from "@/integrations/supabase/client";
+import { servicesSupabase, isServicesSupabaseConfigured } from "@/integrations/supabase/servicesClient";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
+import { logActivity } from "@/utils/auditLogger";
 
 interface Service {
     id: string;
@@ -109,6 +112,7 @@ export const ServicesSection = () => {
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const { user } = useAuth();
     const [saving, setSaving] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [form, setForm] = useState({
@@ -122,7 +126,8 @@ export const ServicesSection = () => {
     const fetchServices = useCallback(async (showLoading = true) => {
         if (showLoading) setLoading(true);
         try {
-            const { data, error } = await supabase
+            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+            const { data, error } = await client
                 .from("services")
                 .select("*")
                 .order("created_at", { ascending: false });
@@ -164,18 +169,42 @@ export const ServicesSection = () => {
 
         setSaving(true);
         try {
+            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
             if (editingId) {
-                const { error } = await supabase
+                const { error } = await client
                     .from("services")
-                    .update({ ...form, updated_at: new Date().toISOString() })
+                    .update({ ...form })
                     .eq("id", editingId);
                 if (error) throw error;
+
+                // Log the update
+                logActivity({
+                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                    adminEmail: user?.email || "Unknown",
+                    actionType: 'update',
+                    targetType: 'service',
+                    targetId: editingId,
+                    targetData: form,
+                    description: `Updated service: ${form.title}`
+                });
+
                 toast.success("✨ Service updated successfully!");
             } else {
-                const { error } = await supabase
+                const { error } = await client
                     .from("services")
                     .insert([form]);
                 if (error) throw error;
+
+                // Log the creation
+                logActivity({
+                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                    adminEmail: user?.email || "Unknown",
+                    actionType: 'create',
+                    targetType: 'service',
+                    description: `Created new service: ${form.title}`,
+                    targetData: form
+                });
+
                 toast.success("🎉 New service added successfully!");
             }
             resetForm();
@@ -210,8 +239,20 @@ export const ServicesSection = () => {
     const handleDelete = useCallback(async (id: string, title: string) => {
         if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
         try {
-            const { error } = await supabase.from("services").delete().eq("id", id);
+            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+            const { error } = await client.from("services").delete().eq("id", id);
             if (error) throw error;
+
+            // Log the deletion
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'delete',
+                targetType: 'service',
+                targetId: id,
+                description: `Deleted service: ${title}`
+            });
+
             toast.success("Service deleted successfully");
             setServices(prev => prev.filter(s => s.id !== id));
         } catch (error: any) {

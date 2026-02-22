@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CustomCursor } from "@/components/ui/CustomCursor";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
+import { Preloader } from "@/components/ui/Preloader";
 import { Suspense, lazy } from "react";
 import { ReelPopup } from "@/components/home/ReelPopup";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -59,6 +60,7 @@ const App = () => (
     <TooltipProvider>
       <ScrollProgress />
       <CustomCursor />
+      <Preloader />
       <Toaster />
       <Sonner />
       <BrowserRouter>

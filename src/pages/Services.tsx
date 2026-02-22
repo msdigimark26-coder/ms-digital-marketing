@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { supabase, isConfigured as isSupabaseConfigured } from "@/integrations/supabase/client";
 import { servicesSupabase, isServicesSupabaseConfigured } from "@/integrations/supabase/servicesClient";
 
 interface ServiceShowcase {
@@ -205,7 +206,7 @@ const Services = () => {
 
   useEffect(() => {
     const fetchServices = async () => {
-      if (!isServicesSupabaseConfigured) {
+      if (!isSupabaseConfigured && !isServicesSupabaseConfigured) {
         // Use fallback services
         const mappedFallback = fallbackServices;
         setServices(mappedFallback);
@@ -214,7 +215,8 @@ const Services = () => {
       }
 
       try {
-        const { data, error } = await servicesSupabase
+        const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+        const { data, error } = await client
           .from('services_showcase')
           .select('*')
           .eq('is_active', true)
@@ -249,9 +251,10 @@ const Services = () => {
     fetchServices();
 
     // Set up real-time subscription for live updates
-    if (isServicesSupabaseConfigured) {
-      const channel = servicesSupabase
-        .channel('services_showcase_changes_page')
+    if (isSupabaseConfigured || isServicesSupabaseConfigured) {
+      const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+      const channel = client
+        .channel('services_showcase_changes')
         .on(
           'postgres_changes',
           {
@@ -269,7 +272,7 @@ const Services = () => {
 
       // Cleanup subscription on unmount
       return () => {
-        servicesSupabase.removeChannel(channel);
+        client.removeChannel(channel);
       };
     }
   }, []);

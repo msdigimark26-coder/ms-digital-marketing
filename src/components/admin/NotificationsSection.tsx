@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
+import { logActivity } from "@/utils/auditLogger";
 import {
     Dialog,
     DialogContent,
@@ -45,6 +47,7 @@ export const NotificationsSection = () => {
         message: "",
         image: ""
     });
+    const { user } = useAuth();
     const [submitting, setSubmitting] = useState(false);
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -141,6 +144,17 @@ export const NotificationsSection = () => {
                 .eq("id", id);
 
             if (error) throw error;
+
+            // Log deletion
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'delete',
+                targetType: 'notification',
+                targetId: id,
+                description: `Deleted notification broadcast: ${id}`
+            });
+
             toast.success("Notification deleted");
             fetchNotifications();
         } catch (error: any) {
@@ -165,6 +179,18 @@ export const NotificationsSection = () => {
                     .eq("id", editingNotif.id);
 
                 if (error) throw error;
+
+                // Log update
+                logActivity({
+                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                    adminEmail: user?.email || "Unknown",
+                    actionType: 'update',
+                    targetType: 'notification',
+                    targetId: editingNotif.id,
+                    targetData: formData,
+                    description: `Updated notification broadcast: ${formData.title}`
+                });
+
                 toast.success("Notification updated");
             } else {
                 const { error } = await supabase
@@ -176,6 +202,17 @@ export const NotificationsSection = () => {
                     });
 
                 if (error) throw error;
+
+                // Log creation
+                logActivity({
+                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                    adminEmail: user?.email || "Unknown",
+                    actionType: 'create',
+                    targetType: 'notification',
+                    targetData: formData,
+                    description: `Broadcasted new notification: ${formData.title}`
+                });
+
                 toast.success("Notification broadcasted");
             }
 

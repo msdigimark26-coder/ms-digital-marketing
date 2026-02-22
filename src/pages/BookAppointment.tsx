@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { toast } from "sonner";
-import { servicesSupabase as supabase } from "@/integrations/supabase/servicesClient";
+import { supabase } from "@/integrations/supabase/client";
+import { servicesSupabase, isServicesSupabaseConfigured } from "@/integrations/supabase/servicesClient";
 
 // Hardcoded services list
 const SERVICES = [
@@ -45,7 +46,8 @@ const BookAppointment = () => {
 
         try {
             // Insert booking into Supabase
-            const { data, error } = await supabase
+            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+            const { error } = await client
                 .from("bookings")
                 .insert([
                     {

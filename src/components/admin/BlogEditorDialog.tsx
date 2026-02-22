@@ -16,6 +16,8 @@ import {
     Plus
 } from "lucide-react";
 import { blogSupabase as supabase } from "@/integrations/supabase/blogClient";
+import { useAuth } from "@/hooks/useAuth";
+import { logActivity } from "@/utils/auditLogger";
 import {
     Dialog,
     DialogContent,
@@ -53,6 +55,7 @@ interface BlogEditorDialogProps {
 
 export const BlogEditorDialog = ({ post, isOpen, onClose, onSuccess }: BlogEditorDialogProps) => {
     const [isLoading, setIsLoading] = useState(false);
+    const { user } = useAuth();
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(post?.featured_image || null);
 
@@ -177,6 +180,18 @@ export const BlogEditorDialog = ({ post, isOpen, onClose, onSuccess }: BlogEdito
                     .update(articleData)
                     .eq('id', post.id);
                 if (error) throw error;
+
+                // Log update
+                logActivity({
+                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                    adminEmail: user?.email || "Unknown",
+                    actionType: 'update',
+                    targetType: 'blog_post',
+                    targetId: post.id,
+                    targetData: articleData,
+                    description: `Updated blog article: ${formData.title}`
+                });
+
                 toast.success("Article updated successfully");
             } else {
                 // Create
@@ -184,6 +199,17 @@ export const BlogEditorDialog = ({ post, isOpen, onClose, onSuccess }: BlogEdito
                     .from('articles')
                     .insert([articleData]);
                 if (error) throw error;
+
+                // Log creation
+                logActivity({
+                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                    adminEmail: user?.email || "Unknown",
+                    actionType: 'create',
+                    targetType: 'blog_post',
+                    targetData: articleData,
+                    description: `Published new blog article: ${formData.title}`
+                });
+
                 toast.success("Article published successfully");
             }
 

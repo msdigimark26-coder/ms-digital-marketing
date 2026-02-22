@@ -3,9 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Trash2, Edit2, Briefcase, ExternalLink, Loader2, CheckCircle2, Clock, PlayCircle, AlertCircle } from "lucide-react";
-import { servicesSupabase as supabase } from "@/integrations/supabase/servicesClient";
+import { Plus, Trash2, Edit2, Briefcase, ExternalLink, Loader2, CheckCircle2, Clock, PlayCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { servicesSupabase, isServicesSupabaseConfigured } from "@/integrations/supabase/servicesClient";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
+import { logActivity } from "@/utils/auditLogger";
 
 interface Project {
     id: string;
@@ -130,12 +133,14 @@ export const PortfolioSection = () => {
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const { user } = useAuth();
     const [form, setForm] = useState({ title: "", client: "", description: "", status: "in_progress", progress: 0 });
 
     const fetchProjects = useCallback(async (showLoading = true) => {
         if (showLoading) setLoading(true);
         try {
-            const { data, error } = await supabase
+            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+            const { data, error } = await client
                 .from("projects")
                 .select("*")
                 .order("created_at", { ascending: false });
@@ -147,7 +152,7 @@ export const PortfolioSection = () => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [isServicesSupabaseConfigured]);
 
     useEffect(() => {
         fetchProjects();
@@ -157,17 +162,42 @@ export const PortfolioSection = () => {
         e.preventDefault();
         try {
             if (editingId) {
-                const { error } = await supabase
+                const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+                const { error } = await client
                     .from("projects")
-                    .update(form)
+                    .update({ ...form, updated_at: new Date().toISOString() })
                     .eq("id", editingId);
                 if (error) throw error;
+
+                // Log the update
+                logActivity({
+                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                    adminEmail: user?.email || "Unknown",
+                    actionType: 'update',
+                    targetType: 'portfolio_project_tracker',
+                    targetId: editingId,
+                    targetData: form,
+                    description: `Updated internal project: ${form.title}`
+                });
+
                 toast.success("Project updated successfully");
             } else {
-                const { error } = await supabase
+                const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+                const { error } = await client
                     .from("projects")
                     .insert([form]);
                 if (error) throw error;
+
+                // Log the creation
+                logActivity({
+                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                    adminEmail: user?.email || "Unknown",
+                    actionType: 'create',
+                    targetType: 'portfolio_project_tracker',
+                    targetData: form,
+                    description: `Added new internal project: ${form.title}`
+                });
+
                 toast.success("Project added to portfolio tracker");
             }
             resetForm();
@@ -194,8 +224,20 @@ export const PortfolioSection = () => {
         if (!confirm("Are you sure you want to remove this project?")) return;
         try {
             setProjects(prev => prev.filter(p => p.id !== id));
-            const { error } = await supabase.from("projects").delete().eq("id", id);
+            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+            const { error } = await client.from("projects").delete().eq("id", id);
             if (error) throw error;
+
+            // Log deletion
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'delete',
+                targetType: 'portfolio_project_tracker',
+                targetId: id,
+                description: `Deleted internal project tracker entry ID: ${id}`
+            });
+
             toast.success("Project removed");
         } catch (error: any) {
             toast.error(error.message);
@@ -210,12 +252,24 @@ export const PortfolioSection = () => {
                     <h2 className="text-3xl font-display font-bold text-gradient">Project Tracker</h2>
                     <p className="text-muted-foreground mt-1 text-sm font-medium italic">Track internal delivery progress and client milestones</p>
                 </div>
-                <Button
-                    onClick={() => isAdding ? resetForm() : setIsAdding(true)}
-                    className="bg-gradient-primary rounded-xl font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-all text-white"
-                >
-                    {isAdding ? "Close Editor" : <><Plus className="mr-2 h-4 w-4" /> Add Project</>}
-                </Button>
+                <div className="flex items-center gap-3">
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => fetchProjects(true)}
+                        disabled={loading}
+                        className="border-white/10 hover:bg-white/5 text-slate-400 group h-10 w-10 flex items-center justify-center rounded-xl"
+                        title="Refresh projects"
+                    >
+                        <RefreshCw className={`h-4 w-4 transition-all duration-500 ${loading ? 'animate-spin' : 'group-active:rotate-180'}`} />
+                    </Button>
+                    <Button
+                        onClick={() => isAdding ? resetForm() : setIsAdding(true)}
+                        className="bg-gradient-primary rounded-xl font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-all text-white h-10 px-4"
+                    >
+                        {isAdding ? "Close Editor" : <><Plus className="mr-2 h-4 w-4" /> Add Project</>}
+                    </Button>
+                </div>
             </div>
 
             <AnimatePresence>

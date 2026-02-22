@@ -5,9 +5,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus, Trash2, Edit2, Search, Filter, Mail, Phone, Clock, Loader2 } from "lucide-react";
-import { servicesSupabase as supabase } from "@/integrations/supabase/servicesClient";
+import { Plus, Trash2, Edit2, Search, Filter, Mail, Phone, Clock, Loader2, RefreshCw } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { servicesSupabase, isServicesSupabaseConfigured } from "@/integrations/supabase/servicesClient";
 import { motion } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
+import { logActivity } from "@/utils/auditLogger";
 
 interface Lead {
     id: string;
@@ -108,12 +111,14 @@ export const LeadsSection = () => {
         source: "manual",
         message: ""
     });
+    const { user } = useAuth();
     const [submitting, setSubmitting] = useState(false);
 
     const fetchLeads = useCallback(async (showLoading = true) => {
         if (showLoading) setLoading(true);
         try {
-            const { data, error } = await supabase
+            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+            const { data, error } = await client
                 .from("leads")
                 .select("*")
                 .order("created_at", { ascending: false });
@@ -134,11 +139,23 @@ export const LeadsSection = () => {
     const updateStatus = useCallback(async (id: string, status: string) => {
         try {
             setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l));
-            const { error } = await supabase
+            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+            const { error } = await client
                 .from("leads")
                 .update({ status })
                 .eq("id", id);
             if (error) throw error;
+
+            // Log status update
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'update',
+                targetType: 'lead_status',
+                targetId: id,
+                description: `Updated lead status to: ${status}`
+            });
+
             toast.success("Status updated");
         } catch (error: any) {
             toast.error(error.message);
@@ -149,8 +166,20 @@ export const LeadsSection = () => {
     const deleteLead = useCallback(async (id: string) => {
         if (!confirm("Are you sure?")) return;
         try {
-            const { error } = await supabase.from("leads").delete().eq("id", id);
+            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+            const { error } = await client.from("leads").delete().eq("id", id);
             if (error) throw error;
+
+            // Log deletion
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'delete',
+                targetType: 'lead',
+                targetId: id,
+                description: `Deleted lead ID: ${id}`
+            });
+
             toast.success("Lead deleted");
             setLeads(prev => prev.filter(l => l.id !== id));
         } catch (error: any) {
@@ -176,6 +205,17 @@ export const LeadsSection = () => {
         try {
             const { error } = await supabase.from("leads").insert([form]);
             if (error) throw error;
+
+            // Log creation
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'create',
+                targetType: 'lead',
+                description: `Manually added lead: ${form.name}`,
+                targetData: form
+            });
+
             toast.success("Lead added");
             setOpen(false);
             setForm({ name: "", email: "", phone: "", status: "new", source: "manual", message: "" });
@@ -194,30 +234,42 @@ export const LeadsSection = () => {
                     <h2 className="text-2xl font-bold text-white tracking-tight">Leads Management</h2>
                     <p className="text-slate-500 mt-1 text-sm font-medium">Capture and convert your potential clients</p>
                 </div>
-                <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogTrigger asChild>
-                        <Button className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold shadow-md shadow-purple-900/20">
-                            <Plus className="mr-2 h-4 w-4" /> Add Manual Lead
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Add Manual Lead</DialogTitle>
-                        </DialogHeader>
-                        <form onSubmit={handleAddLead} className="space-y-4">
-                            <div><Label htmlFor="name">Name</Label><Input id="name" name="name" value={form.name} onChange={handleFormChange} required disabled={submitting} /></div>
-                            <div><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" value={form.email} onChange={handleFormChange} required disabled={submitting} /></div>
-                            <div><Label htmlFor="phone">Phone</Label><Input id="phone" name="phone" value={form.phone} onChange={handleFormChange} disabled={submitting} /></div>
-                            <div><Label htmlFor="message">Message</Label><Textarea id="message" name="message" value={form.message} onChange={handleFormChange} disabled={submitting} /></div>
-                            <DialogFooter>
-                                <Button type="submit" disabled={submitting} className="bg-purple-600 hover:bg-purple-700 text-white">
-                                    {submitting && <Loader2 className="animate-spin h-4 w-4 mr-2" />} Add Lead
-                                </Button>
-                                <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-                            </DialogFooter>
-                        </form>
-                    </DialogContent>
-                </Dialog>
+                <div className="flex items-center gap-3">
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => fetchLeads(true)}
+                        disabled={loading}
+                        className="bg-black/20 border-white/5 text-slate-400 hover:text-white h-10 w-10 flex items-center justify-center rounded-xl group transition-all"
+                        title="Refresh leads"
+                    >
+                        <RefreshCw className={`h-4 w-4 transition-all duration-500 ${loading ? 'animate-spin' : 'group-active:rotate-180'}`} />
+                    </Button>
+                    <Dialog open={open} onOpenChange={setOpen}>
+                        <DialogTrigger asChild>
+                            <Button className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold shadow-md shadow-purple-900/20 h-10 px-4">
+                                <Plus className="mr-2 h-4 w-4" /> Add Manual Lead
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Add Manual Lead</DialogTitle>
+                            </DialogHeader>
+                            <form onSubmit={handleAddLead} className="space-y-4">
+                                <div><Label htmlFor="name">Name</Label><Input id="name" name="name" value={form.name} onChange={handleFormChange} required disabled={submitting} /></div>
+                                <div><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" value={form.email} onChange={handleFormChange} required disabled={submitting} /></div>
+                                <div><Label htmlFor="phone">Phone</Label><Input id="phone" name="phone" value={form.phone} onChange={handleFormChange} disabled={submitting} /></div>
+                                <div><Label htmlFor="message">Message</Label><Textarea id="message" name="message" value={form.message} onChange={handleFormChange} disabled={submitting} /></div>
+                                <DialogFooter>
+                                    <Button type="submit" disabled={submitting} className="bg-purple-600 hover:bg-purple-700 text-white">
+                                        {submitting && <Loader2 className="animate-spin h-4 w-4 mr-2" />} Add Lead
+                                    </Button>
+                                    <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                                </DialogFooter>
+                            </form>
+                        </DialogContent>
+                    </Dialog>
+                </div>
             </div>
 
             <div className="bg-[#110C1D] border border-white/5 rounded-xl p-6 flex flex-col md:flex-row gap-4 items-center shadow-sm">

@@ -4,11 +4,13 @@ import { toast } from "sonner";
 import {
     CreditCard, DollarSign, ArrowUpRight, ArrowDownLeft, Clock, Search,
     Filter, Loader2, Download, ExternalLink, Plus, X, Save,
-    User, Briefcase, Calendar, CheckCircle2, AlertCircle, Eye
+    User, Briefcase, Calendar, CheckCircle2, AlertCircle, Eye, RefreshCw
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { careersSupabase } from "@/integrations/supabase/careersClient";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
+import { logActivity } from "@/utils/auditLogger";
 import { Input } from "@/components/ui/input";
 
 interface Payment {
@@ -39,6 +41,7 @@ export const PaymentsSection = () => {
     const [loadingProofs, setLoadingProofs] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [isAdding, setIsAdding] = useState(false);
+    const { user } = useAuth();
     const [saving, setSaving] = useState(false);
 
     const [form, setForm] = useState({
@@ -113,6 +116,16 @@ export const PaymentsSection = () => {
 
             if (error) throw error;
 
+            // Log creation
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'create',
+                targetType: 'payment',
+                targetData: form,
+                description: `Recorded new transaction for: ${form.client_name}`
+            });
+
             toast.success("Transaction recorded successfully");
             setIsAdding(false);
             setForm({
@@ -137,6 +150,17 @@ export const PaymentsSection = () => {
                 .update({ status })
                 .eq('id', id);
             if (error) throw error;
+
+            // Log proof status update
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'update',
+                targetType: 'payment_proof_status',
+                targetId: id,
+                description: `Updated status for payment proof (ID: ${id}) to: ${status}`
+            });
+
             toast.success(`Proof set to ${status}`);
             fetchProofs();
         } catch (err: any) {
@@ -171,7 +195,17 @@ export const PaymentsSection = () => {
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <div className="bg-black/40 p-1 rounded-xl border border-white/5 flex gap-1">
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => viewMode === 'ledger' ? fetchPayments(true) : fetchProofs()}
+                        disabled={loading || loadingProofs}
+                        className="bg-black/40 border-white/10 text-slate-400 hover:text-white h-12 w-12 flex items-center justify-center rounded-xl group transition-all"
+                        title="Refresh data"
+                    >
+                        <RefreshCw className={`h-5 w-5 transition-all duration-500 ${(loading || loadingProofs) ? 'animate-spin' : 'group-active:rotate-180'}`} />
+                    </Button>
+                    <div className="bg-black/40 p-1 rounded-xl border border-white/5 flex gap-1 h-12">
                         <button
                             onClick={() => setViewMode('ledger')}
                             className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${viewMode === 'ledger' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
@@ -186,9 +220,9 @@ export const PaymentsSection = () => {
                         </button>
                     </div>
 
-                    <div className="hidden md:flex px-6 py-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                        <div className="text-[10px] uppercase font-bold tracking-widest opacity-70">Total Revenue</div>
-                        <div className="text-xl font-black font-display flex items-center gap-1">
+                    <div className="hidden md:flex flex-col px-6 py-1 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 h-12 justify-center">
+                        <div className="text-[8px] uppercase font-bold tracking-widest opacity-70 leading-none">Total Revenue</div>
+                        <div className="text-lg font-black font-display flex items-center gap-1 leading-none mt-1">
                             <span className="text-[10px] opacity-50">₹</span>
                             {totalRevenue.toLocaleString()}
                         </div>
@@ -220,7 +254,7 @@ export const PaymentsSection = () => {
                     <Button variant="ghost" className="flex-1 md:flex-none h-11 px-6 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 gap-2">
                         <Filter className="h-4 w-4" /> Filter
                     </Button>
-                    <Button variant="ghost" className="flex-1 md:flex-none h-11 px-6 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 gap-2" onClick={fetchPayments}>
+                    <Button variant="ghost" className="flex-1 md:flex-none h-11 px-6 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 gap-2" onClick={() => fetchPayments(true)}>
                         <Download className="h-4 w-4" /> Export
                     </Button>
                 </div>
@@ -315,8 +349,8 @@ export const PaymentsSection = () => {
                                             <td className="px-8 py-5">
                                                 <div className="flex justify-center">
                                                     <span className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border ${p.status === 'completed' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.1)]' :
-                                                            p.status === 'failed' ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' :
-                                                                'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                                                        p.status === 'failed' ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' :
+                                                            'bg-amber-500/10 border-amber-500/20 text-amber-400'
                                                         }`}>{p.status}</span>
                                                 </div>
                                             </td>
@@ -359,8 +393,8 @@ export const PaymentsSection = () => {
                                 </div>
                                 <div className="absolute top-3 left-3">
                                     <span className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border backdrop-blur-md ${proof.status === 'Verified' ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' :
-                                            proof.status === 'Rejected' ? 'bg-rose-500/20 border-rose-500/40 text-rose-400' :
-                                                'bg-amber-500/20 border-amber-500/40 text-amber-400'
+                                        proof.status === 'Rejected' ? 'bg-rose-500/20 border-rose-500/40 text-rose-400' :
+                                            'bg-amber-500/20 border-amber-500/40 text-amber-400'
                                         }`}>
                                         {proof.status}
                                     </span>

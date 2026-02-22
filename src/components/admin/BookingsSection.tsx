@@ -30,8 +30,11 @@ import {
     DollarSign,
     Trash2
 } from "lucide-react";
-import { servicesSupabase as supabase, isServicesSupabaseConfigured } from "@/integrations/supabase/servicesClient";
+import { supabase, isConfigured as isSupabaseConfigured } from "@/integrations/supabase/client";
+import { servicesSupabase, isServicesSupabaseConfigured } from "@/integrations/supabase/servicesClient";
+import { reelsSupabase, isReelsSupabaseConfigured } from "@/integrations/supabase/reels-client";
 import { motion, AnimatePresence } from "framer-motion";
+import { logActivity } from "@/utils/auditLogger";
 
 interface Booking {
     id: string;
@@ -64,7 +67,8 @@ export const BookingsSection = () => {
     const fetchBookings = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
+            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+            const { data, error } = await client
                 .from("bookings")
                 .select("*")
                 .order("booking_date", { ascending: false });
@@ -79,11 +83,11 @@ export const BookingsSection = () => {
     };
 
     useEffect(() => {
-        if (isServicesSupabaseConfigured) {
+        if (isSupabaseConfigured) {
             fetchBookings();
         } else {
             setLoading(false);
-            toast.error("Secondary Supabase project not configured. Please check your environment variables.");
+            toast.error("Supabase not configured. Please check your environment variables.");
         }
     }, []);
 
@@ -91,35 +95,29 @@ export const BookingsSection = () => {
         try {
             const booking = bookings.find(b => b.id === id);
 
-            const { error } = await supabase
+            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+            const { error } = await client
                 .from("bookings")
                 .update({ status: newStatus, updated_at: new Date().toISOString() })
                 .eq("id", id);
 
             if (error) throw error;
 
-            // Create audit log entry
-            const auditLogEntry = {
-                admin_user_id: user?.id || null,
-                admin_email: user?.email || 'Unknown',
-                admin_name: user?.user_metadata?.full_name || user?.email || 'Unknown Admin',
-                action_type: 'update',
-                target_type: 'booking_status',
-                target_id: id,
-                target_data: {
+            // Log status update using central logger
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'update',
+                targetType: 'booking_status',
+                targetId: id,
+                targetData: {
                     booking_id: id,
                     old_status: booking?.status,
                     new_status: newStatus,
                     updated_at: new Date().toISOString()
                 },
-                description: `Updated status of booking for ${booking?.name} to ${newStatus}`,
-                ip_address: null,
-                user_agent: navigator.userAgent
-            };
-
-            await supabase
-                .from("admin_activity_logs")
-                .insert([auditLogEntry]);
+                description: `Updated status of booking for ${booking?.name} to ${newStatus}`
+            });
 
             toast.success(`Booking status updated to ${newStatus}`);
             fetchBookings();
@@ -140,35 +138,23 @@ export const BookingsSection = () => {
                 return;
             }
 
-            // Create audit log entry BEFORE deletion
-            const auditLogEntry = {
-                admin_user_id: user?.id || null,
-                admin_email: user?.email || 'Unknown',
-                admin_name: user?.user_metadata?.full_name || user?.email || 'Unknown Admin',
-                action_type: 'delete',
-                target_type: 'booking',
-                target_id: id,
-                target_data: {
+            // Log the deletion using central logger
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'delete',
+                targetType: 'booking',
+                targetId: id,
+                targetData: {
                     ...bookingToDelete,
                     deleted_at: new Date().toISOString()
                 },
-                description: `Deleted booking for ${bookingToDelete.name} - ${bookingToDelete.service_name || bookingToDelete.services?.title || 'Unknown Service'} (${new Date(bookingToDelete.booking_date).toLocaleDateString()})`,
-                ip_address: null, // Could be captured if needed
-                user_agent: navigator.userAgent
-            };
-
-            // Insert audit log
-            const { error: logError } = await supabase
-                .from("admin_activity_logs")
-                .insert([auditLogEntry]);
-
-            if (logError) {
-                console.error("Failed to create audit log:", logError);
-                // Continue with deletion even if audit log fails
-            }
+                description: `Deleted booking for ${bookingToDelete.name} - ${bookingToDelete.service_name || bookingToDelete.services?.title || 'Unknown Service'} (${new Date(bookingToDelete.booking_date).toLocaleDateString()})`
+            });
 
             // Now delete the booking
-            const { error } = await supabase
+            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+            const { error } = await client
                 .from("bookings")
                 .delete()
                 .eq("id", id);

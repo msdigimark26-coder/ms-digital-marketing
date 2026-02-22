@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { Plus, Trash2, Edit2, Shield, UserPlus, Users, ImagePlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
+import { logActivity } from "@/utils/auditLogger";
 
 interface PortalAdmin {
     id: string;
@@ -22,6 +24,7 @@ export const SettingsSection = () => {
     const [loading, setLoading] = useState(true);
     const [form, setForm] = useState({ username: "", email: "", password: "", role: "admin", avatar_url: "" });
     const [isEditing, setIsEditing] = useState<string | null>(null);
+    const { user } = useAuth();
     const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
     const fetchAdmins = async () => {
@@ -90,6 +93,18 @@ export const SettingsSection = () => {
                         throw error;
                     }
                 }
+
+                // Log update
+                logActivity({
+                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                    adminEmail: user?.email || "Unknown",
+                    actionType: 'update',
+                    targetType: 'admin_user',
+                    targetId: isEditing,
+                    targetData: { username: form.username, email: form.email, role: form.role },
+                    description: `Updated admin account: ${form.username}`
+                });
+
                 toast.success("Admin updated successfully");
 
                 // Check if we updated the currently logged-in user
@@ -115,6 +130,17 @@ export const SettingsSection = () => {
                         avatar_url: form.avatar_url
                     }]);
                 if (error) throw error;
+
+                // Log creation
+                logActivity({
+                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                    adminEmail: user?.email || "Unknown",
+                    actionType: 'create',
+                    targetType: 'admin_user',
+                    targetData: { username: form.username, email: form.email, role: form.role },
+                    description: `Created new admin account: ${form.username}`
+                });
+
                 toast.success("New admin created successfully");
             }
             setForm({ username: "", email: "", password: "", role: "admin", avatar_url: "" });
@@ -136,6 +162,17 @@ export const SettingsSection = () => {
                 .delete()
                 .eq("id", id);
             if (error) throw error;
+
+            // Log deletion
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'delete',
+                targetType: 'admin_user',
+                targetId: id,
+                description: `Deleted admin account: ${username}`
+            });
+
             toast.success("Admin deleted");
             fetchAdmins();
         } catch (error: any) {

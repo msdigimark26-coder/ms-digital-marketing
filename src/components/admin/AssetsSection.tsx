@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { Plus, Trash2, Edit2, Link as LinkIcon, Image as ImageIcon, Loader2, Upload, ExternalLink, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
+import { logActivity } from "@/utils/auditLogger";
 
 interface Asset {
     id: string;
@@ -82,6 +84,7 @@ export const AssetsSection = () => {
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
+    const { user } = useAuth();
     const [form, setForm] = useState({ title: "", link: "", description: "", cover_image_url: "" as string | null });
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -121,10 +124,33 @@ export const AssetsSection = () => {
             if (editingId) {
                 const { error } = await supabase.from("assets").update(form).eq("id", editingId);
                 if (error) throw error;
+
+                // Log update
+                logActivity({
+                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                    adminEmail: user?.email || "Unknown",
+                    actionType: 'update',
+                    targetType: 'asset',
+                    targetId: editingId,
+                    targetData: form,
+                    description: `Updated asset: ${form.title}`
+                });
+
                 toast.success("Asset updated");
             } else {
                 const { error } = await supabase.from("assets").insert([form]);
                 if (error) throw error;
+
+                // Log creation
+                logActivity({
+                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                    adminEmail: user?.email || "Unknown",
+                    actionType: 'create',
+                    targetType: 'asset',
+                    targetData: form,
+                    description: `Created new asset: ${form.title}`
+                });
+
                 toast.success("Asset created");
             }
             resetForm();
@@ -150,6 +176,17 @@ export const AssetsSection = () => {
         try {
             const { error } = await supabase.from("assets").delete().eq("id", id);
             if (error) throw error;
+
+            // Log deletion
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'delete',
+                targetType: 'asset',
+                targetId: id,
+                description: `Deleted asset (ID: ${id})`
+            });
+
             toast.success("Asset deleted");
             setAssets(prev => prev.filter(a => a.id !== id));
         } catch (error: any) { toast.error(error.message); }

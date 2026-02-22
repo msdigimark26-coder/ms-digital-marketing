@@ -42,8 +42,8 @@ interface Notification {
 const LogoImage = () => {
 	return (
 		<img
-			src="/favicon.png"
-			alt="MS Digi Mark"
+			src="/logo-new.png"
+			alt="MS DIGIMARK"
 			className="h-5 md:h-7 lg:h-8 w-auto object-contain"
 			decoding="async"
 			loading="eager"
@@ -150,7 +150,7 @@ export const Header = () => {
 							className="relative flex items-center gap-3"
 						>
 							<LogoImage />
-							<span className="sr-only">MS DIGI MARK</span>
+							<span className="sr-only">MS DIGIMARK</span>
 							<div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-primary group-hover:w-full transition-all duration-300" />
 						</motion.div>
 					</Link>
@@ -200,7 +200,7 @@ export const Header = () => {
 					</div>
 
 					{/* Right Side Actions */}
-					<div className="absolute right-0 flex items-center gap-3">
+					<div className="absolute right-0 flex items-center gap-1 sm:gap-4">
 						{/* Notification Bell */}
 						<div className="relative">
 							<button
@@ -276,7 +276,7 @@ export const Header = () => {
 							</Button>
 						</Link>
 						<Link to="/payments" className="sm:hidden">
-							<Button size="sm" className="bg-gradient-primary hover:opacity-90 text-white p-2">
+							<Button size="icon" className="h-9 w-9 bg-gradient-primary hover:opacity-90 text-white">
 								<CreditCard className="h-4 w-4" />
 							</Button>
 						</Link>
@@ -297,7 +297,7 @@ export const Header = () => {
 						{/* Mobile Menu Button */}
 						<button
 							onClick={() => setIsOpen(!isOpen)}
-							className="lg:hidden p-2 text-foreground"
+							className="lg:hidden p-2 text-foreground hover:text-primary transition-colors"
 							aria-label="Toggle menu"
 						>
 							{isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}

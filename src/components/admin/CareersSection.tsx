@@ -18,9 +18,12 @@ import {
     FileText,
     Star,
     Filter,
+    RefreshCw
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { careersSupabase, isCareersSupabaseConfigured, JobOpening, JobApplication } from "@/integrations/supabase/careersClient";
+import { useAuth } from "@/hooks/useAuth";
+import { logActivity } from "@/utils/auditLogger";
 import {
     Dialog,
     DialogContent,
@@ -56,6 +59,7 @@ export const CareersSection = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("all");
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const { user } = useAuth();
     const [editingJob, setEditingJob] = useState<JobOpening | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [applicationsCounts, setApplicationsCounts] = useState<Record<string, number>>({});
@@ -159,6 +163,17 @@ export const CareersSection = () => {
                 .eq("id", id);
 
             if (error) throw error;
+
+            // Log status update
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'update',
+                targetType: 'job_application_status',
+                targetId: id,
+                description: `Updated application status (ID: ${id}) to: ${newStatus}`
+            });
+
             toast.success(`Application marked as ${newStatus}`);
             fetchApplications();
         } catch (error: any) {
@@ -193,6 +208,17 @@ export const CareersSection = () => {
                 .eq("id", id);
 
             if (error) throw error;
+
+            // Log deletion
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'delete',
+                targetType: 'job_application',
+                targetId: id,
+                description: `Deleted job application (ID: ${id})`
+            });
+
             toast.success("Application deleted successfully");
             fetchApplications();
         } catch (error: any) {
@@ -209,6 +235,17 @@ export const CareersSection = () => {
                 .eq("id", id);
 
             if (error) throw error;
+
+            // Log star toggle
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'update',
+                targetType: 'job_application_star',
+                targetId: id,
+                description: `${starred ? 'Starred' : 'Unstarred'} job application (ID: ${id})`
+            });
+
             toast.success(starred ? "Application starred" : "Star removed");
             fetchApplications();
         } catch (error: any) {
@@ -290,6 +327,17 @@ export const CareersSection = () => {
                 .eq("id", id);
 
             if (error) throw error;
+
+            // Log deletion
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'delete',
+                targetType: 'job_opening',
+                targetId: id,
+                description: `Deleted job opening (ID: ${id})`
+            });
+
             toast.success("Job opening deleted successfully");
             fetchJobOpenings();
         } catch (error: any) {
@@ -328,6 +376,18 @@ export const CareersSection = () => {
                     .eq("id", editingJob.id);
 
                 if (error) throw error;
+
+                // Log update
+                logActivity({
+                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                    adminEmail: user?.email || "Unknown",
+                    actionType: 'update',
+                    targetType: 'job_opening',
+                    targetId: editingJob.id,
+                    targetData: jobData,
+                    description: `Updated job opening: ${formData.title}`
+                });
+
                 toast.success("Job opening updated successfully");
             } else {
                 const { error } = await careersSupabase
@@ -335,6 +395,17 @@ export const CareersSection = () => {
                     .insert([jobData]);
 
                 if (error) throw error;
+
+                // Log creation
+                logActivity({
+                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                    adminEmail: user?.email || "Unknown",
+                    actionType: 'create',
+                    targetType: 'job_opening',
+                    targetData: jobData,
+                    description: `Created new job opening: ${formData.title}`
+                });
+
                 toast.success("Job opening created successfully");
             }
 
@@ -356,6 +427,17 @@ export const CareersSection = () => {
                 .eq("id", job.id);
 
             if (error) throw error;
+
+            // Log status toggle
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'update',
+                targetType: 'job_opening_status',
+                targetId: job.id,
+                description: `Toggled status for job opening ${job.title} to: ${newStatus}`
+            });
+
             toast.success(`Job opening ${newStatus.toLowerCase()}`);
             fetchJobOpenings();
         } catch (error: any) {
@@ -419,11 +501,23 @@ export const CareersSection = () => {
                 {/* Job Openings Tab */}
                 <TabsContent value="openings" className="mt-0">
                     <div className="space-y-6">
-                        {/* Post New Opening Button */}
-                        <div className="flex justify-end">
+                        <div className="flex justify-end items-center gap-3">
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => {
+                                    fetchJobOpenings();
+                                    fetchApplications();
+                                }}
+                                disabled={loading}
+                                className="bg-black/20 border-white/5 text-slate-400 hover:text-white h-10 w-10 flex items-center justify-center rounded-xl group transition-all"
+                                title="Refresh career data"
+                            >
+                                <RefreshCw className={`h-4 w-4 transition-all duration-500 ${loading ? 'animate-spin' : 'group-active:rotate-180'}`} />
+                            </Button>
                             <Button
                                 onClick={handleOpenAdd}
-                                className="bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-lg shadow-purple-900/20"
+                                className="bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-lg shadow-purple-900/20 h-10"
                             >
                                 <Plus className="mr-2 h-4 w-4" /> Post New Opening
                             </Button>

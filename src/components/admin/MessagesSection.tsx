@@ -7,6 +7,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Send, Loader2, Paperclip, X, FileText, Image as ImageIcon, MessageSquare, Mic, Square, Trash2, Play, Pause, Palette, ChevronRight, MoreVertical, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
+import { logActivity } from "@/utils/auditLogger";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -272,8 +274,9 @@ const THEMES: Record<string, Theme> = {
 export const MessagesSection = () => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState("");
+    const { user: authUser } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
-    const [currentUser, setCurrentUser] = useState<any>(null);
+    const [adminSession, setAdminSession] = useState<any>(null);
     const [attachment, setAttachment] = useState<File | null>(null);
     const [activeTheme, setActiveTheme] = useState<keyof typeof THEMES>(() => {
         const saved = localStorage.getItem("ms-chat-theme");
@@ -343,6 +346,17 @@ export const MessagesSection = () => {
                 .eq("id", id);
 
             if (error) throw error;
+
+            // Log message deletion
+            logActivity({
+                adminName: authUser?.user_metadata?.full_name || authUser?.email || "Admin",
+                adminEmail: authUser?.email || "Unknown",
+                actionType: 'delete',
+                targetType: 'admin_message',
+                targetId: id,
+                description: `Deleted an administrative message (ID: ${id})`
+            });
+
             toast.success("Message deleted for everyone");
             await fetchMessages(); // Proactive fetch
         } catch (err) {
@@ -390,6 +404,15 @@ export const MessagesSection = () => {
 
             if (dbError) throw dbError;
 
+            // Log system wipe
+            logActivity({
+                adminName: authUser?.user_metadata?.full_name || authUser?.email || "Admin",
+                adminEmail: authUser?.email || "Unknown",
+                actionType: 'delete',
+                targetType: 'admin_messages_full_wipe',
+                description: `PERFORMED A FULL SYSTEM WIPE OF ALL ADMINISTRATIVE MESSAGES`
+            });
+
             toast.success("SYSTEM WIPE COMPLETE - All data destroyed");
         } catch (err) {
             console.error(err);
@@ -422,7 +445,7 @@ export const MessagesSection = () => {
 
         const session = sessionStorage.getItem("ms-admin-session");
         if (session) {
-            setCurrentUser(JSON.parse(session));
+            setAdminSession(JSON.parse(session));
         }
 
         cleanupOldMessages();
@@ -570,7 +593,7 @@ export const MessagesSection = () => {
     };
 
     const sendFileMessage = async (file: File) => {
-        if (!currentUser) return;
+        if (!adminSession) return;
         setIsLoading(true);
 
         try {
@@ -592,7 +615,7 @@ export const MessagesSection = () => {
                 .from("admin_messages")
                 .insert({
                     content: "",
-                    sender_id: currentUser.id,
+                    sender_id: adminSession.id,
                     file_url: publicUrl,
                     file_type: file.type,
                     file_name: file.name
@@ -610,7 +633,7 @@ export const MessagesSection = () => {
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         if ((!newMessage.trim() && !attachment)) return;
-        if (!currentUser) return;
+        if (!adminSession) return;
 
         setIsLoading(true);
         if (navigator.vibrate) navigator.vibrate(50);
@@ -644,16 +667,27 @@ export const MessagesSection = () => {
                 .from("admin_messages")
                 .insert({
                     content: newMessage,
-                    sender_id: currentUser.id,
+                    sender_id: adminSession.id,
                     file_url: fileData.url,
                     file_type: fileData.type,
                     file_name: fileData.name
                 });
 
             if (error) throw error;
+
+            // Log message sent
+            logActivity({
+                adminName: authUser?.user_metadata?.full_name || authUser?.email || "Admin",
+                adminEmail: authUser?.email || "Unknown",
+                actionType: 'create',
+                targetType: 'admin_message',
+                description: `Sent an administrative message${attachment ? ' with an attachment' : ''}`
+            });
+
             setNewMessage("");
             setAttachment(null);
             if (fileInputRef.current) fileInputRef.current.value = "";
+            fetchMessages();
         } catch (error) {
             console.error("Error sending message:", error);
             toast.error("Failed to send message");
@@ -754,14 +788,14 @@ export const MessagesSection = () => {
                 <div className="flex items-center gap-4">
                     <div className="relative group/logo">
                         <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${theme.avatar} flex items-center justify-center shadow-lg transition-all duration-500 ${theme.shadow} overflow-hidden`}>
-                            <img src="/favicon.png" alt="Portal Logo" className="w-8 h-8 object-contain drop-shadow-md group-hover/logo:scale-110 transition-transform duration-500" />
+                            <img src="/logo-new.png" alt="Portal Logo" className="w-8 h-8 object-contain drop-shadow-md group-hover/logo:scale-110 transition-transform duration-500" />
                         </div>
                         <div className={`absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 ${theme.isLight ? 'border-white' : 'border-slate-900'} rounded-full shadow-sm`} />
                     </div>
                     <div>
                         <div className="flex items-center gap-2">
                             <h2 className={`text-xl font-bold tracking-tight transition-colors duration-500`}>Team Hub</h2>
-                            {currentUser?.role === 'superadmin' && (
+                            {adminSession?.role === 'superadmin' && (
                                 <Button
                                     variant="ghost"
                                     size="icon"
@@ -876,7 +910,7 @@ export const MessagesSection = () => {
 
                             <div className="space-y-4">
                                 {msgs.map((message, idx) => {
-                                    const isMe = message.sender_id === currentUser?.id;
+                                    const isMe = message.sender_id === adminSession?.id;
                                     const previousMsg = idx > 0 ? msgs[idx - 1] : null;
                                     const isGrouped = shouldGroup(message, previousMsg);
 
@@ -929,7 +963,7 @@ export const MessagesSection = () => {
                                                                 <DropdownMenuItem onClick={() => handleDeleteForMe(message.id)} className="hover:bg-white/5 cursor-pointer flex gap-2">
                                                                     <X className="h-4 w-4" /> Delete for me
                                                                 </DropdownMenuItem>
-                                                                {(isMe || currentUser?.role === 'superadmin') && (
+                                                                {(isMe || adminSession?.role === 'superadmin') && (
                                                                     <DropdownMenuItem onClick={() => handleDeleteForEveryone(message.id)} className="text-red-400 hover:bg-white/5 cursor-pointer flex gap-2">
                                                                         <Trash2 className="h-4 w-4" /> Delete for everyone
                                                                     </DropdownMenuItem>

@@ -13,12 +13,15 @@ import {
     Image as ImageIcon,
     Calendar,
     MoreVertical,
-    BarChart
+    BarChart,
+    RefreshCw
 } from "lucide-react";
 import { blogSupabase as supabase } from "@/integrations/supabase/blogClient";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { BlogEditorDialog } from "./BlogEditorDialog";
+import { useAuth } from "@/hooks/useAuth";
+import { logActivity } from "@/utils/auditLogger";
 
 // Interface for Blog Post
 interface BlogPost {
@@ -87,6 +90,7 @@ export const BlogSection = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [isEditorOpen, setIsEditorOpen] = useState(false);
+    const { user } = useAuth();
     const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
 
     const fetchPosts = useCallback(async (showLoading = true) => {
@@ -110,6 +114,17 @@ export const BlogSection = () => {
             }
             const { error } = await supabase.from('articles').delete().eq('id', id);
             if (error) throw error;
+
+            // Log deletion
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'delete',
+                targetType: 'blog_post',
+                targetId: id,
+                description: `Deleted blog article (ID: ${id})`
+            });
+
             toast.success("Article deleted");
             setPosts(prev => prev.filter(p => p.id !== id));
         } catch (error: any) { toast.error(error.message); }
@@ -147,7 +162,19 @@ export const BlogSection = () => {
                     <h2 className="text-3xl font-display font-bold text-white tracking-tight">Blog <span className="text-purple-400">Management</span></h2>
                     <p className="text-slate-400 text-sm font-medium mt-1">Manage tech articles and updates.</p>
                 </div>
-                <Button onClick={() => { setEditingPost(null); setIsEditorOpen(true); }} className="bg-purple-600 hover:bg-purple-700 text-white"><Plus className="mr-2 h-4 w-4" /> New Article</Button>
+                <div className="flex items-center gap-3">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => fetchPosts(true)}
+                        disabled={loading}
+                        className="h-10 w-10 text-slate-400 hover:text-white rounded-lg group transition-all"
+                        title="Refresh articles"
+                    >
+                        <RefreshCw className={`h-4 w-4 transition-all duration-500 ${loading ? 'animate-spin' : 'group-active:rotate-180'}`} />
+                    </Button>
+                    <Button onClick={() => { setEditingPost(null); setIsEditorOpen(true); }} className="bg-purple-600 hover:bg-purple-700 text-white h-10"><Plus className="mr-2 h-4 w-4" /> New Article</Button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

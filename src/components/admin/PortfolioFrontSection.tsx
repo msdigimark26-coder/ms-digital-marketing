@@ -8,8 +8,11 @@ import {
     Eye, EyeOff, Upload, Image as ImageIcon, ExternalLink, Tag as TagIcon, Briefcase,
     LayoutGrid, Check, Search
 } from "lucide-react";
-import { servicesSupabase as supabase, isServicesSupabaseConfigured } from "@/integrations/supabase/servicesClient";
+import { supabase } from "@/integrations/supabase/client";
+import { servicesSupabase, isServicesSupabaseConfigured } from "@/integrations/supabase/servicesClient";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
+import { logActivity } from "@/utils/auditLogger";
 
 interface PortfolioProject {
     id: string;
@@ -48,6 +51,7 @@ export const PortfolioFrontSection = () => {
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const { user } = useAuth();
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [imageFile, setImageFile] = useState<File | null>(null);
@@ -73,7 +77,8 @@ export const PortfolioFrontSection = () => {
     const fetchProjects = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
+            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+            const { data, error } = await client
                 .from("portfolio_projects")
                 .select("*")
                 .order("order_index", { ascending: true });
@@ -105,11 +110,12 @@ export const PortfolioFrontSection = () => {
     const uploadImage = async (file: File): Promise<string | null> => {
         setUploading(true);
         try {
+            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
             const fileExt = file.name.split('.').pop();
             const fileName = `project-${Date.now()}.${fileExt}`;
             const filePath = `${fileName}`;
 
-            const { data, error } = await supabase.storage
+            const { data, error } = await client.storage
                 .from('portfolio-images')
                 .upload(filePath, file, {
                     cacheControl: '3600',
@@ -118,7 +124,7 @@ export const PortfolioFrontSection = () => {
 
             if (error) throw error;
 
-            const { data: { publicUrl } } = supabase.storage
+            const { data: { publicUrl } } = client.storage
                 .from('portfolio-images')
                 .getPublicUrl(filePath);
 
@@ -179,8 +185,10 @@ export const PortfolioFrontSection = () => {
                 updated_at: new Date().toISOString()
             };
 
+            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+
             if (editingId) {
-                const { data, error } = await supabase
+                const { data, error } = await client
                     .from("portfolio_projects")
                     .update(projectData)
                     .eq("id", editingId)
@@ -190,14 +198,37 @@ export const PortfolioFrontSection = () => {
                 if (!data || data.length === 0) {
                     throw new Error("Update failed: Database permission denied or record missing.");
                 }
+
+                // Log update
+                logActivity({
+                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                    adminEmail: user?.email || "Unknown",
+                    actionType: 'update',
+                    targetType: 'portfolio_front_project',
+                    targetId: editingId,
+                    targetData: projectData,
+                    description: `Updated front portfolio project: ${form.title}`
+                });
+
                 toast.success("Project updated successfully!");
             } else {
                 const maxOrder = projects.length > 0 ? Math.max(...projects.map(p => p.order_index)) : 0;
-                const { error } = await supabase
+                const { error } = await client
                     .from("portfolio_projects")
                     .insert([{ ...projectData, order_index: maxOrder + 1 }]);
 
                 if (error) throw error;
+
+                // Log creation
+                logActivity({
+                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                    adminEmail: user?.email || "Unknown",
+                    actionType: 'create',
+                    targetType: 'portfolio_front_project',
+                    targetData: projectData,
+                    description: `Created new front portfolio project: ${form.title}`
+                });
+
                 toast.success("Project created successfully!");
             }
 
@@ -214,12 +245,24 @@ export const PortfolioFrontSection = () => {
         if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
 
         try {
-            const { error } = await supabase
+            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+            const { error } = await client
                 .from("portfolio_projects")
                 .delete()
                 .eq("id", id);
 
             if (error) throw error;
+
+            // Log deletion
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'delete',
+                targetType: 'portfolio_front_project',
+                targetId: id,
+                description: `Deleted front portfolio project: ${title}`
+            });
+
             toast.success("Project deleted successfully");
             fetchProjects();
         } catch (error: any) {
@@ -238,9 +281,10 @@ export const PortfolioFrontSection = () => {
         [updatedProjects[index], updatedProjects[newIndex]] = [updatedProjects[newIndex], updatedProjects[index]];
 
         try {
+            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
             await Promise.all([
-                supabase.from("portfolio_projects").update({ order_index: newIndex }).eq("id", projects[index].id),
-                supabase.from("portfolio_projects").update({ order_index: index }).eq("id", projects[newIndex].id)
+                client.from("portfolio_projects").update({ order_index: newIndex }).eq("id", projects[index].id),
+                client.from("portfolio_projects").update({ order_index: index }).eq("id", projects[newIndex].id)
             ]);
             fetchProjects();
         } catch (error: any) {

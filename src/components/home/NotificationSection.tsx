@@ -151,88 +151,61 @@ export const NotificationSection = () => {
 
     return (
         <>
-            <div className="fixed bottom-[130px] md:bottom-24 left-4 right-4 md:left-auto md:right-4 z-[9999] max-w-[320px] md:max-w-[380px] ml-auto mr-auto md:mr-0 pointer-events-none">
+            <div className="fixed top-1/2 -translate-y-1/2 right-6 z-[9999] max-w-[320px] md:max-w-[420px] pointer-events-none">
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={currentNotif.id}
-                        initial={{ opacity: 0, y: 40, scale: 0.9 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9, y: 20, transition: { duration: 0.2 } }}
+                        initial={{ opacity: 0, x: 40, scale: 0.95 }}
+                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95, x: 40, transition: { duration: 0.2 } }}
                         onClick={handleViewDetails}
                         className="relative group pointer-events-auto cursor-pointer will-change-[transform,opacity]"
                     >
-                        {/* Premium Glass Container */}
-                        <div className="relative overflow-hidden bg-[#0d0d15]/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-3 md:p-5 transition-all duration-300 hover:border-purple-500/30 active:scale-[0.98]">
-
-                            {/* Inner Glow Effect */}
-                            <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/5 via-transparent to-blue-500/5 pointer-events-none" />
-
-                            {/* Control Buttons Container */}
-                            <div className="absolute top-2 right-2 flex items-center gap-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
-                                    onClick={toggleMute}
-                                    className="p-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all"
-                                >
-                                    {isMuted ? <VolumeX className="h-3 w-3 md:h-3.5 md:w-3.5" /> : <Volume2 className="h-3 w-3 md:h-3.5 md:w-3.5" />}
-                                </button>
-                                <button
-                                    onClick={dismiss}
-                                    className="p-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all"
-                                >
-                                    <X className="h-3 w-3 md:h-3.5 md:w-3.5" />
-                                </button>
-                            </div>
-
-                            <div className="flex gap-3 md:gap-5">
-                                {/* Glowing Icon Container */}
+                        {/* Apple-style Glass Container */}
+                        <div className="relative overflow-hidden bg-[#1a1a24]/70 backdrop-blur-2xl border border-white/20 rounded-[2rem] shadow-[0_15px_35px_rgba(0,0,0,0.4)] p-4 transition-all duration-500 hover:scale-[1.02] active:scale-[0.98]">
+                            <div className="flex gap-4 items-start">
+                                {/* iOS Icon Style */}
                                 <div className="relative flex-shrink-0">
-                                    <div className="w-11 h-11 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-600/20 flex items-center justify-center border border-white/10 relative z-10 overflow-hidden group-hover:scale-105 transition-transform duration-500">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-purple-500 opacity-20" />
+                                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center border border-white/10 overflow-hidden shadow-lg">
                                         {currentNotif.image ? (
                                             <img src={currentNotif.image} alt="" className="w-full h-full object-cover" />
                                         ) : (
-                                            <Bell className="h-5 w-5 md:h-7 md:w-7 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
+                                            <Bell className="h-6 w-6 text-white" />
                                         )}
                                     </div>
-                                    {/* Pulse Ring */}
-                                    <div className="absolute -inset-1 bg-gradient-to-br from-blue-400 to-purple-500 rounded-xl md:rounded-2xl blur-md opacity-20 animate-pulse" />
                                 </div>
 
-                                <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                    <div className="mb-0.5">
-                                        <h4 className="text-sm md:text-base font-bold bg-gradient-to-r from-blue-400 to-purple-300 bg-clip-text text-transparent truncate">
+                                <div className="flex-1 min-w-0 flex flex-col pt-0.5">
+                                    <div className="flex items-center justify-between mb-0.5">
+                                        <h4 className="text-sm md:text-base font-bold text-white truncate pr-2">
                                             {currentNotif.title}
                                         </h4>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">
+                                                {formatRelativeTime(currentNotif.timestamp)}
+                                            </span>
+                                            <div className="flex items-center gap-1">
+                                                <button
+                                                    onClick={toggleMute}
+                                                    className="p-1 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all"
+                                                >
+                                                    {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                                                </button>
+                                                <button
+                                                    onClick={dismiss}
+                                                    className="p-1 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all"
+                                                >
+                                                    <X className="h-3 w-3" />
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    <p className="text-[11px] md:text-sm text-slate-300 line-clamp-2 leading-tight">
+                                    <p className="text-[12px] md:text-[14px] text-slate-300 line-clamp-2 leading-snug">
                                         {currentNotif.message}
                                     </p>
-
-                                    <div className="mt-1 md:mt-2 flex items-center justify-between">
-                                        <div className="flex items-center gap-1 text-[9px] md:text-[10px] text-purple-400 font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <span>Read update</span>
-                                            <ExternalLink className="h-2 w-2 md:h-2.5 md:w-2.5" />
-                                        </div>
-                                        <span className="text-[9px] text-slate-500 font-medium">
-                                            {formatRelativeTime(currentNotif.timestamp)}
-                                        </span>
-                                    </div>
                                 </div>
                             </div>
-
-                            {/* Progress bar at the bottom */}
-                            {notifications.length > 1 && !isDetailsOpen && (
-                                <div className="absolute bottom-0 left-0 h-[3px] bg-white/5 w-full overflow-hidden">
-                                    <motion.div
-                                        key={`progress-${currentNotif.id}`}
-                                        initial={{ x: "-100%" }}
-                                        animate={{ x: "0%" }}
-                                        transition={{ duration: 5, ease: "linear" }}
-                                        className="h-full bg-gradient-to-r from-blue-500 to-purple-500"
-                                    />
-                                </div>
-                            )}
                         </div>
                     </motion.div>
                 </AnimatePresence>

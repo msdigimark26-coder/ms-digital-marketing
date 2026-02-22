@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { servicesSupabase } from "@/integrations/supabase/servicesClient";
+import { servicesSupabase, isServicesSupabaseConfigured } from "@/integrations/supabase/servicesClient";
+import { useAuth } from "@/hooks/useAuth";
+import { logActivity } from "@/utils/auditLogger";
 import {
     Users,
     Briefcase,
@@ -125,6 +127,7 @@ export const DashboardSection = () => {
     const [leads, setLeads] = useState<any[]>([]);
     const [projects, setProjects] = useState<any[]>([]);
     const [payments, setPayments] = useState<any[]>([]);
+    const { user } = useAuth();
     const [loading, setLoading] = useState(true);
 
     const fetchAllData = useCallback(async (showLoading = true) => {
@@ -138,8 +141,9 @@ export const DashboardSection = () => {
 
             if (statsData) setStats(statsData);
 
-            // 2. Fetch Recent Leads (Limit 5 from Account 2)
-            const { data: leadsData } = await servicesSupabase
+            // 2. Fetch Recent Leads (Limit 5)
+            const leadsClient = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+            const { data: leadsData } = await leadsClient
                 .from('leads')
                 .select('*')
                 .order('created_at', { ascending: false })
@@ -147,8 +151,9 @@ export const DashboardSection = () => {
 
             if (leadsData) setLeads(leadsData || []);
 
-            // 3. Fetch Active Projects (Limit 4 from Project Tracker)
-            const { data: projectsData } = await servicesSupabase
+            // 3. Fetch Active Projects (Limit 4)
+            const projectsClient = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+            const { data: projectsData } = await projectsClient
                 .from('projects')
                 .select('*')
                 .order('created_at', { ascending: false })
@@ -184,6 +189,17 @@ export const DashboardSection = () => {
                 .eq('id', id);
 
             if (error) throw error;
+
+            // Log statistic update
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'update',
+                targetType: 'dashboard_stat',
+                targetId: id,
+                targetData: formData,
+                description: `Updated dashboard statistic: ${id}`
+            });
 
             toast.success("Statistic updated");
             fetchAllData(false); // Refresh data without showing global loader

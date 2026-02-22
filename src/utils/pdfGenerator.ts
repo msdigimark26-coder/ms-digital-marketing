@@ -17,64 +17,82 @@ interface LogEntry {
     } | null;
 }
 
-// Robust Image Loader with Retry and Timeout
-const loadImage = async (url: string, timeout = 5000, retries = 2): Promise<string> => {
-    const load = () => new Promise<string>((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = "Anonymous";
-        img.src = url;
+const loadImage = async (url: string, timeout = 7000, retries = 2): Promise<string> => {
+    // For local assets, we can use the Image object directly or fetch
+    // For external (Supabase) assets, fetch with CORS is generally more reliable for conversion
 
-        // Add cache buster to avoid CORS issues with cached images
-        if (url.includes('?')) {
-            img.src = `${url}&t=${new Date().getTime()}`;
-        } else {
-            img.src = `${url}?t=${new Date().getTime()}`;
+    const tryLoad = async (targetUrl: string): Promise<string> => {
+        try {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+
+            const response = await fetch(targetUrl, {
+                mode: 'cors',
+                signal: controller.signal
+            });
+            clearTimeout(id);
+
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const blob = await response.blob();
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        } catch (err) {
+            // Fallback to traditional Image object if fetch fails (e.g. for some local assets)
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                if (!targetUrl.startsWith('data:') && !targetUrl.startsWith('blob:')) {
+                    img.crossOrigin = "Anonymous";
+                }
+
+                const timer = setTimeout(() => {
+                    img.src = "";
+                    reject(new Error("Image timeout"));
+                }, timeout);
+
+                img.onload = () => {
+                    clearTimeout(timer);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) {
+                        ctx.drawImage(img, 0, 0);
+                        try {
+                            resolve(canvas.toDataURL('image/jpeg', 0.9));
+                        } catch (e) {
+                            reject(e);
+                        }
+                    } else {
+                        reject(new Error("Canvas context failed"));
+                    }
+                };
+                img.onerror = () => {
+                    clearTimeout(timer);
+                    reject(new Error("Image load error"));
+                };
+
+                img.src = targetUrl;
+            });
         }
+    };
 
-        const timer = setTimeout(() => {
-            img.src = ""; // Stop loading
-            reject(new Error("Timeout"));
-        }, timeout);
-
-        img.onload = () => {
-            clearTimeout(timer);
-            const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-                // limit max dimensions to avoid massive base64 strings
-                const maxDim = 800;
-                if (img.width > maxDim || img.height > maxDim) {
-                    const scale = maxDim / Math.max(img.width, img.height);
-                    canvas.width = img.width * scale;
-                    canvas.height = img.height * scale;
-                }
-
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                try {
-                    resolve(canvas.toDataURL('image/jpeg', 0.85));
-                } catch (e) {
-                    reject(e);
-                }
-            } else {
-                reject(new Error("Canvas context failed"));
-            }
-        };
-        img.onerror = (err) => {
-            clearTimeout(timer);
-            reject(err);
-        };
-    });
+    // Construct URL with cache buster
+    const buster = `t=${Date.now()}`;
+    const finalUrl = url.includes('?') ? `${url}&${buster}` : `${url}?${buster}`;
 
     try {
-        return await load();
+        return await tryLoad(finalUrl);
     } catch (err) {
         if (retries > 0) {
             console.warn(`Retrying image load (${retries} left): ${url}`);
             return await loadImage(url, timeout, retries - 1);
         }
-        console.error(`Failed to load image: ${url}`, err);
+        console.error(`X-Load Failure: ${url}`, err);
         return "";
     }
 };
@@ -105,7 +123,7 @@ export const generateAuditLogPDF = async (logs: LogEntry[], onProgress: (msg: st
 
         // 4. Load Assets (Logo)
         onProgress("Loading branding assets...");
-        const logoDataUrl = await loadImage('/favicon.png', 3000);
+        const logoDataUrl = await loadImage('/logo-new.png', 3000);
 
         // 5. Header Generation
         if (logoDataUrl) {
@@ -208,19 +226,26 @@ export const generateAuditLogPDF = async (logs: LogEntry[], onProgress: (msg: st
         // 8. Final Output
         onProgress("Finalizing encryption...");
         const pdfBlob = doc.output('blob');
+        const localUrl = URL.createObjectURL(pdfBlob);
 
-        // 9. Upload
+        // 9. Upload (Optional / Background)
         onProgress("Uploading to secure cloud vault...");
-        const { error: uploadError } = await supabase.storage
-            .from('admin_logs')
-            .upload(filename, pdfBlob, {
-                contentType: 'application/pdf',
-                upsert: false
-            });
+        try {
+            const { error: uploadError } = await supabase.storage
+                .from('admin_logs')
+                .upload(filename, pdfBlob, {
+                    contentType: 'application/pdf',
+                    upsert: false
+                });
 
-        if (uploadError) throw uploadError;
+            if (uploadError) {
+                console.warn("Cloud upload failed (RLS probably), but the user will still get the local file.", uploadError);
+            }
+        } catch (uploadErr) {
+            console.warn("Upload exception caught:", uploadErr);
+        }
 
-        return filename;
+        return { filename, localUrl };
 
     } catch (err) {
         console.error("PDF Generation Error:", err);

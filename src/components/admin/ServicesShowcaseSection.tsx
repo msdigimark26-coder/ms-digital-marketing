@@ -8,10 +8,14 @@ import {
     Code, Search, Share2, Target, Film, Palette, Box, Sparkles, Layers, Eye, EyeOff,
     Upload, Image as ImageIcon, Cpu, Wifi, Database, Cloud, Zap, Globe, Server, HardDrive,
     Radio, Bluetooth, Network, MonitorSmartphone, Binary, CircuitBoard, Webhook,
-    Cuboid, BoxSelect, Shapes, Pentagon, Hexagon, Package, Combine, Maximize2, ExternalLink
+    Cuboid, BoxSelect, Shapes, Pentagon, Hexagon, Package, Combine, Maximize2, ExternalLink,
+    RefreshCw
 } from "lucide-react";
-import { servicesSupabase as supabase } from "@/integrations/supabase/servicesClient";
+import { supabase } from "@/integrations/supabase/client";
+import { servicesSupabase, isServicesSupabaseConfigured } from "@/integrations/supabase/servicesClient";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
+import { logActivity } from "@/utils/auditLogger";
 
 interface ServiceShowcase {
     id: string;
@@ -145,6 +149,7 @@ export const ServicesShowcaseSection = () => {
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const { user } = useAuth();
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [customIconFile, setCustomIconFile] = useState<File | null>(null);
@@ -171,12 +176,24 @@ export const ServicesShowcaseSection = () => {
     const fetchServices = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
+            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+            const { data, error } = await client
                 .from("services_showcase")
                 .select("*")
                 .order("order_index", { ascending: true });
 
-            if (error) throw error;
+            if (error) {
+                // Handle missing table gracefully
+                const isMissingTable = error.code === '42P01' ||
+                    error.message?.includes('schema cache') ||
+                    error.message?.includes('not find the table');
+
+                if (isMissingTable) {
+                    setServices([]);
+                    return;
+                }
+                throw error;
+            }
             setServices(data || []);
         } catch (error: any) {
             console.error("Error fetching services showcase:", error);
@@ -221,16 +238,52 @@ export const ServicesShowcaseSection = () => {
 
         setSaving(true);
         try {
+            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+            let iconUrl = form.icon_url;
+
+            if (form.use_custom_icon && customIconFile) {
+                setUploading(true);
+                const fileExtension = customIconFile.name.split('.').pop();
+                const filePath = `public/${Date.now()}.${fileExtension}`;
+
+                const { error: uploadError } = await client.storage
+                    .from('showcase-images')
+                    .upload(filePath, customIconFile);
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = client.storage
+                    .from('showcase-images')
+                    .getPublicUrl(filePath);
+                iconUrl = publicUrl;
+                setUploading(false);
+            }
+
+            const serviceData = {
+                ...form,
+                icon_url: iconUrl,
+                updated_at: new Date().toISOString()
+            };
+
             if (editingId) {
-                const { error } = await supabase
+                const { error } = await client
                     .from("services_showcase")
-                    .update({
-                        ...form,
-                        updated_at: new Date().toISOString()
-                    })
+                    .update(serviceData)
                     .eq("id", editingId);
 
                 if (error) throw error;
+
+                // Log the update
+                logActivity({
+                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                    adminEmail: user?.email || "Unknown",
+                    actionType: 'update',
+                    targetType: 'service_showcase',
+                    targetId: editingId,
+                    targetData: serviceData,
+                    description: `Updated showcase service: ${form.title}`
+                });
+
                 toast.success("✨ Service updated successfully!");
             } else {
                 // Get the max order_index and add 1
@@ -238,14 +291,25 @@ export const ServicesShowcaseSection = () => {
                     ? Math.max(...services.map(s => s.order_index))
                     : 0;
 
-                const { error } = await supabase
+                const { error } = await client
                     .from("services_showcase")
                     .insert([{
-                        ...form,
+                        ...serviceData, // Use serviceData which already has form and icon_url
                         order_index: maxOrder + 1
                     }]);
 
                 if (error) throw error;
+
+                // Log the creation
+                logActivity({
+                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                    adminEmail: user?.email || "Unknown",
+                    actionType: 'create',
+                    targetType: 'service_showcase',
+                    targetData: serviceData,
+                    description: `Created new showcase service: ${form.title}`
+                });
+
                 toast.success("🎉 New service added successfully!");
             }
 
@@ -315,12 +379,24 @@ export const ServicesShowcaseSection = () => {
         if (!confirm(`Are you sure you want to delete "${title}"?\n\nThis action cannot be undone.`)) return;
 
         try {
-            const { error } = await supabase
+            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+            const { error } = await client
                 .from("services_showcase")
                 .delete()
                 .eq("id", id);
 
             if (error) throw error;
+
+            // Log the deletion
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'delete',
+                targetType: 'service_showcase',
+                targetId: id,
+                description: `Deleted showcase service: ${title}`
+            });
+
             toast.success("Service deleted successfully");
             fetchServices();
         } catch (error: any) {
@@ -340,13 +416,14 @@ export const ServicesShowcaseSection = () => {
             const currentService = services[currentIndex];
             const targetService = services[targetIndex];
 
+            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
             // Swap order_index
             await Promise.all([
-                supabase
+                client
                     .from("services_showcase")
                     .update({ order_index: targetService.order_index })
                     .eq("id", currentService.id),
-                supabase
+                client
                     .from("services_showcase")
                     .update({ order_index: currentService.order_index })
                     .eq("id", targetService.id)
@@ -362,12 +439,24 @@ export const ServicesShowcaseSection = () => {
 
     const toggleActive = async (id: string, currentStatus: boolean) => {
         try {
-            const { error } = await supabase
+            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+            const { error } = await client
                 .from("services_showcase")
                 .update({ is_active: !currentStatus })
                 .eq("id", id);
 
             if (error) throw error;
+
+            // Log status toggle
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'update',
+                targetType: 'service_showcase_status',
+                targetId: id,
+                description: `${currentStatus ? 'Deactivated' : 'Activated'} showcase service status`
+            });
+
             toast.success(currentStatus ? "Service hidden" : "Service activated");
             fetchServices();
         } catch (error: any) {
@@ -434,26 +523,38 @@ export const ServicesShowcaseSection = () => {
                         Manage services displayed on your homepage • {services.length} total service{services.length !== 1 ? 's' : ''}
                     </p>
                 </div>
-                <Button
-                    onClick={() => {
-                        if (isAdding) {
-                            resetForm();
-                        } else {
-                            setIsAdding(true);
-                        }
-                    }}
-                    className="bg-gradient-primary hover:opacity-90 shadow-lg"
-                >
-                    {isAdding ? (
-                        <>
-                            <X className="mr-2 h-4 w-4" /> Cancel
-                        </>
-                    ) : (
-                        <>
-                            <Plus className="mr-2 h-4 w-4" /> Add New Service
-                        </>
-                    )}
-                </Button>
+                <div className="flex items-center gap-3">
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={fetchServices}
+                        disabled={loading}
+                        className="border-white/10 hover:bg-white/5 text-slate-400 group h-10 w-10"
+                        title="Refresh data"
+                    >
+                        <RefreshCw className={`h-4 w-4 transition-all duration-500 ${loading ? 'animate-spin' : 'group-active:rotate-180'}`} />
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            if (isAdding) {
+                                resetForm();
+                            } else {
+                                setIsAdding(true);
+                            }
+                        }}
+                        className="bg-gradient-primary hover:opacity-90 shadow-lg h-10"
+                    >
+                        {isAdding ? (
+                            <>
+                                <X className="mr-2 h-4 w-4" /> Cancel
+                            </>
+                        ) : (
+                            <>
+                                <Plus className="mr-2 h-4 w-4" /> Add New Service
+                            </>
+                        )}
+                    </Button>
+                </div>
             </div>
 
             {/* Add/Edit Form */}

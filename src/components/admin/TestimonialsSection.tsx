@@ -3,9 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Trash2, Edit2, Star, User, Image as ImageIcon, Loader2, X } from "lucide-react";
+import { Plus, Trash2, Edit2, Star, User, Image as ImageIcon, Loader2, X, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
+import { logActivity } from "@/utils/auditLogger";
 
 interface Testimonial {
     id: string;
@@ -81,6 +83,7 @@ export const TestimonialsSection = () => {
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const { user } = useAuth();
     const [form, setForm] = useState<{
         name: string;
         role: string;
@@ -145,10 +148,33 @@ export const TestimonialsSection = () => {
                     .update(form)
                     .eq("id", editingId);
                 if (error) throw error;
+
+                // Log update
+                logActivity({
+                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                    adminEmail: user?.email || "Unknown",
+                    actionType: 'update',
+                    targetType: 'testimonial',
+                    targetId: editingId,
+                    targetData: form,
+                    description: `Updated testimonial from: ${form.name}`
+                });
+
                 toast.success("Testimonial updated");
             } else {
                 const { error } = await supabase.from("testimonials").insert([form]);
                 if (error) throw error;
+
+                // Log creation
+                logActivity({
+                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                    adminEmail: user?.email || "Unknown",
+                    actionType: 'create',
+                    targetType: 'testimonial',
+                    targetData: form,
+                    description: `Added new testimonial from: ${form.name}`
+                });
+
                 toast.success("Testimonial added");
             }
             resetForm();
@@ -173,6 +199,17 @@ export const TestimonialsSection = () => {
         try {
             const { error } = await supabase.from("testimonials").delete().eq("id", id);
             if (error) throw error;
+
+            // Log deletion
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'delete',
+                targetType: 'testimonial',
+                targetId: id,
+                description: `Deleted testimonial (ID: ${id})`
+            });
+
             toast.success("Testimonial deleted");
             setTestimonials(prev => prev.filter(t => t.id !== id));
         } catch (error: any) { toast.error(error.message); }
@@ -182,18 +219,30 @@ export const TestimonialsSection = () => {
         <div className="space-y-8 animate-fade-in">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-white tracking-tight">Client Testimonials</h2>
-                <Button
-                    onClick={() => {
-                        if (isAdding) {
-                            resetForm();
-                        } else {
-                            setIsAdding(true);
-                        }
-                    }}
-                    className="bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-900/20"
-                >
-                    {isAdding ? "Cancel" : <><Plus className="mr-2 h-4 w-4" /> Add Testimonial</>}
-                </Button>
+                <div className="flex items-center gap-3">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => fetchTestimonials(true)}
+                        disabled={loading}
+                        className="h-10 w-10 text-slate-400 hover:text-white rounded-lg group transition-all"
+                        title="Refresh testimonials"
+                    >
+                        <RefreshCw className={`h-4 w-4 transition-all duration-500 ${loading ? 'animate-spin' : 'group-active:rotate-180'}`} />
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            if (isAdding) {
+                                resetForm();
+                            } else {
+                                setIsAdding(true);
+                            }
+                        }}
+                        className="bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-900/20"
+                    >
+                        {isAdding ? "Cancel" : <><Plus className="mr-2 h-4 w-4" /> Add Testimonial</>}
+                    </Button>
+                </div>
             </div>
 
             {isAdding && (

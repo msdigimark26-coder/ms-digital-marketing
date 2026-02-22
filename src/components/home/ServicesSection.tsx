@@ -17,6 +17,7 @@ import {
   Radio, Bluetooth, Network, MonitorSmartphone, Binary, CircuitBoard, Webhook,
   Cuboid, BoxSelect, Shapes, Pentagon, Hexagon, Package, Combine, Maximize2
 } from 'lucide-react';
+import { supabase, isConfigured as isSupabaseConfigured } from '@/integrations/supabase/client';
 import { servicesSupabase, isServicesSupabaseConfigured } from '@/integrations/supabase/servicesClient';
 import { toast } from 'sonner';
 
@@ -135,18 +136,31 @@ const getColorClass = (color: string): string => {
     yellow: 'text-yellow-400',
     cyan: 'text-cyan-400',
   };
-  return colorMap[color] || 'text-pink-400';
+  return colorMap[color] || 'text-purple-400';
+};
+
+const getCardGlow = (color: string): string => {
+  const map: { [key: string]: string } = {
+    pink: 'from-pink-500/20 to-transparent border-pink-500/20 group-hover:border-pink-500/50',
+    blue: 'from-blue-500/20 to-transparent border-blue-500/20 group-hover:border-blue-500/50',
+    green: 'from-green-500/20 to-transparent border-green-500/20 group-hover:border-green-500/50',
+    purple: 'from-purple-500/20 to-transparent border-purple-500/20 group-hover:border-purple-500/50',
+    red: 'from-red-500/20 to-transparent border-red-500/20 group-hover:border-red-500/50',
+    yellow: 'from-yellow-500/20 to-transparent border-yellow-500/20 group-hover:border-yellow-500/50',
+    cyan: 'from-cyan-500/20 to-transparent border-cyan-500/20 group-hover:border-cyan-500/50',
+  };
+  return map[color] || map.purple;
 };
 
 export const ServicesSection = () => {
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [useFallback, setUseFallback] = useState(!isServicesSupabaseConfigured);
+  const [useFallback, setUseFallback] = useState(!isSupabaseConfigured);
 
   useEffect(() => {
     const fetchServices = async () => {
-      if (!isServicesSupabaseConfigured) {
-        // Use fallback services
+      // Use fallback services if neither Supabase client is configured
+      if (!isSupabaseConfigured && !isServicesSupabaseConfigured) {
         setServices(fallbackServices);
         setUseFallback(true);
         setLoading(false);
@@ -154,7 +168,8 @@ export const ServicesSection = () => {
       }
 
       try {
-        const { data, error } = await servicesSupabase
+        const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+        const { data, error } = await client
           .from('services_showcase')
           .select('*')
           .eq('is_active', true)
@@ -191,8 +206,8 @@ export const ServicesSection = () => {
     fetchServices();
 
     // Set up real-time subscription for live updates
-    if (isServicesSupabaseConfigured) {
-      const channel = servicesSupabase
+    if (isSupabaseConfigured) {
+      const channel = supabase
         .channel('services_showcase_changes')
         .on(
           'postgres_changes',
@@ -211,7 +226,7 @@ export const ServicesSection = () => {
 
       // Cleanup subscription on unmount
       return () => {
-        servicesSupabase.removeChannel(channel);
+        supabase.removeChannel(channel);
       };
     }
   }, []);
@@ -255,20 +270,10 @@ export const ServicesSection = () => {
           </motion.p>
         </div>
 
-        <div className="relative max-w-6xl mx-auto">
-          {/* Top Row: Service Pills */}
-          <div className="flex flex-wrap justify-center gap-4 mb-24 relative z-10">
-            {/* SVG Connection Lines - Top to Center */}
-            <div className="absolute top-12 left-0 w-full h-40 pointer-events-none hidden md:block opacity-40">
-              <svg className="w-full h-full" viewBox="0 0 1200 100" preserveAspectRatio="none">
-                <path d="M600,60 L600,100" stroke="#a855f7" strokeWidth="1.5" fill="none" />
-                <path d="M200,60 Q200,80 600,80" stroke="rgba(168,85,247,0.3)" strokeWidth="1" fill="none" />
-                <path d="M400,60 Q400,80 600,80" stroke="rgba(168,85,247,0.3)" strokeWidth="1" fill="none" />
-                <path d="M800,60 Q800,80 600,80" stroke="rgba(168,85,247,0.3)" strokeWidth="1" fill="none" />
-                <path d="M1000,60 Q1000,80 600,80" stroke="rgba(59,130,246,0.3)" strokeWidth="1" fill="none" />
-              </svg>
-            </div>
+        <div className="relative max-w-6xl mx-auto z-10 mt-16 pb-20 font-sans pointer-events-none">
 
+          {/* Top Row: Service Pills */}
+          <div className="flex flex-wrap justify-center gap-3 md:gap-4 px-4 relative z-20 pointer-events-auto">
             {services.map((service, index) => (
               <motion.div
                 key={service.title}
@@ -278,122 +283,112 @@ export const ServicesSection = () => {
                 transition={{ delay: index * 0.1 }}
                 className="group relative"
               >
-                <div className="flex items-center gap-3 px-6 py-3 rounded-full border border-white/20 bg-white/5 hover:bg-white/10 hover:border-purple-500/50 transition-[background-color,border-color] duration-300 cursor-pointer will-change-[background-color,border-color]">
+                <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-full border border-white/10 bg-black/50 backdrop-blur-md hover:bg-white/5 hover:border-primary/50 transition-all duration-300 cursor-pointer text-slate-300 hover:text-white">
                   <service.icon className={`h-4 w-4 ${getColorClass(service.iconColor)}`} />
-                  <span className="text-sm font-semibold whitespace-nowrap">{service.title}</span>
+                  <span className="text-[13px] font-semibold tracking-wide whitespace-nowrap">{service.title}</span>
                   {service.isPopular && (
-                    <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    <span className="bg-primary/20 text-primary border border-primary/20 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ml-1">
                       POPULAR
                     </span>
-                  )}
-                </div>
-
-                {/* Content Tooltip/Popup on Hover */}
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-64 p-4 glass-card opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-300 z-50 border-purple-500/30 backdrop-blur-xl will-change-opacity">
-                  <p className="text-xs text-gray-300 leading-relaxed text-center">
-                    {service.description}
-                  </p>
-                  {service.learnMoreUrl && (
-                    <p className="text-xs text-primary mt-2 text-center">
-                      Learn more →
-                    </p>
                   )}
                 </div>
               </motion.div>
             ))}
           </div>
 
+          {/* SVG Connection Lines from Pills to Hub */}
+          <div className="w-full flex-col items-center relative z-10 opacity-50 hidden md:flex -mt-4 mb-2">
+            <div className="w-[80%] h-24 border-b border-l border-r border-primary/30 rounded-b-[100px]" />
+            <div className="w-0.5 h-12 bg-primary/40" />
+          </div>
+          {/* Mobile spacing fallback */}
+          <div className="h-10 md:h-0" />
 
-          {/* Center Box: Main Goal */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="relative z-10 flex justify-center mb-16"
-          >
-            <div className="bg-purple-500/10 border border-purple-500/30 px-6 py-3 rounded-xl flex items-center gap-3 shadow-[0_0_30px_rgba(168,85,247,0.1)]">
-              <div className="h-6 w-6 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center">
-                <Sparkles className="h-3.5 w-3.5 text-white" />
+          {/* Main Visualization Container */}
+          <div className="relative w-full max-w-5xl mx-auto aspect-[3/4] md:aspect-auto md:h-[550px] mt-8 bg-[#05020a]/80 backdrop-blur-sm rounded-3xl md:rounded-[40px] shadow-[0_0_80px_rgba(0,0,0,0.8)] border border-white/[0.02] flex items-center justify-center pointer-events-none">
+
+            <div className="absolute inset-0 bg-primary/5 blur-3xl pointer-events-none rounded-3xl md:rounded-[40px]" />
+
+            {/* Top Hub Label connected to the line */}
+            <div className="absolute -top-5 md:-top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-auto w-[90%] md:w-auto flex justify-center">
+              <div className="bg-[#0a0514] border border-white/5 px-4 md:px-6 py-2.5 rounded-xl flex items-center gap-2.5 shadow-[0_0_30px_rgba(168,85,247,0.15)] ring-1 ring-primary/20 hover:ring-primary/40 transition-shadow overflow-hidden">
+                <div className="h-6 w-6 flex-shrink-0 rounded-lg bg-primary/20 flex items-center justify-center border border-primary/30">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <span className="text-[11px] md:text-[14px] font-bold text-white tracking-wide truncate">Creating High Quality Traffic for Conversions</span>
               </div>
-              <span className="text-sm font-semibold text-purple-300">Creating High Quality Traffic for Conversions</span>
-            </div>
-          </motion.div>
-
-          {/* Visualization Container */}
-          <div className="relative border border-white/10 rounded-[40px] p-8 md:p-16 h-[400px] overflow-hidden bg-gradient-to-b from-transparent via-white/5 to-transparent">
-
-            {/* Background Radial Waves */}
-            <div className="absolute bottom-[-100px] left-1/2 -translate-x-1/2 w-[600px] h-[600px] pointer-events-none">
-              {[1, 2, 3].map((i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{
-                    opacity: [0.1, 0.2, 0.1],
-                    scale: [1, 1.2, 1],
-                  }}
-                  transition={{
-                    duration: 5,
-                    delay: i * 1,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }}
-                  className="absolute inset-0 border border-purple-500/10 rounded-full will-change-transform"
-                  style={{ transform: `scale(${i * 0.3})` }}
-                />
-              ))}
             </div>
 
-            {/* Daily Leads & Sales Conversions */}
-            <div className="relative z-10 flex justify-between items-center h-full max-w-3xl mx-auto">
-              {/* Left Pillar */}
-              <motion.div
-                initial={{ x: -50, opacity: 0 }}
-                whileInView={{ x: 0, opacity: 1 }}
-                viewport={{ once: true }}
-                className="bg-zinc-900/80 backdrop-blur border border-white/10 px-5 py-2.5 rounded-full flex items-center gap-3"
-              >
-                <div className="p-1.5 rounded-full bg-purple-500/20">
-                  <TrendingUp className="h-4 w-4 text-purple-400" />
+            {/* Geometric SVG Connections Map */}
+            <svg viewBox="0 0 1000 550" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none z-0">
+              <defs>
+                <linearGradient id="line-left" x1="1" y1="0" x2="0" y2="0">
+                  <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.8" />
+                  <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.8" />
+                </linearGradient>
+                <linearGradient id="line-right" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.8" />
+                  <stop offset="100%" stopColor="#a855f7" stopOpacity="0.8" />
+                </linearGradient>
+                <linearGradient id="curve-left" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.8" />
+                  <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.8" />
+                </linearGradient>
+                <linearGradient id="curve-right" x1="1" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#a855f7" stopOpacity="0.8" />
+                  <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.8" />
+                </linearGradient>
+              </defs>
+
+              <path d="M 500 0 L 500 160" stroke="#8b5cf6" strokeOpacity="1" strokeWidth="1.5" fill="none" />
+              <path d="M 250 160 L 500 160" stroke="url(#line-left)" strokeWidth="1.5" fill="none" />
+              <path d="M 500 160 L 750 160" stroke="url(#line-right)" strokeWidth="1.5" fill="none" />
+              <path d="M 250 160 L 250 280" stroke="#3b82f6" strokeOpacity="0.8" strokeWidth="1.5" fill="none" />
+              <path d="M 750 160 L 750 280" stroke="#a855f7" strokeOpacity="0.8" strokeWidth="1.5" fill="none" />
+              <path d="M 250 280 Q 250 440 450 440" stroke="url(#curve-left)" strokeWidth="1.5" fill="none" />
+              <path d="M 750 280 Q 750 440 550 440" stroke="url(#curve-right)" strokeWidth="1.5" fill="none" />
+
+              <circle r="6" fill="#ffffff" filter="drop-shadow(0 0 4px #ffffff)">
+                <animateMotion path="M 500 -10 L 500 160 L 250 160 L 250 280 Q 250 440 450 440" dur="4.5s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0;1;1;1;0" keyTimes="0;0.1;0.5;0.9;1" dur="4.5s" repeatCount="indefinite" />
+              </circle>
+
+              <circle r="6" fill="#ffffff" filter="drop-shadow(0 0 4px #ffffff)">
+                <animateMotion path="M 500 -10 L 500 160 L 750 160 L 750 280 Q 750 440 550 440" dur="4.5s" repeatCount="indefinite" begin="2.25s" />
+                <animate attributeName="opacity" values="0;1;1;1;0" keyTimes="0;0.1;0.5;0.9;1" dur="4.5s" repeatCount="indefinite" begin="2.25s" />
+              </circle>
+            </svg>
+
+            {/* Daily Leads Node */}
+            <div className="absolute top-[51%] left-[25%] -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-auto">
+              <motion.div initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: 0.2 }} className="bg-[#0a0514] border border-white/5 pl-1.5 pr-4 md:pl-2 md:pr-6 py-1.5 md:py-2 rounded-full flex flex-col md:flex-row items-center gap-1.5 md:gap-3 shadow-[0_0_20px_rgba(59,130,246,0.1)] ring-1 ring-blue-500/20 hover:ring-blue-500/50 cursor-pointer whitespace-nowrap">
+                <div className="h-6 w-6 md:h-8 md:w-8 flex-shrink-0 rounded-full bg-blue-500/20 flex items-center justify-center">
+                  <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-blue-400" />
                 </div>
-                <span className="text-sm font-medium">Daily Leads</span>
+                <span className="text-[10px] md:text-sm font-bold text-white tracking-wide">Daily Leads</span>
               </motion.div>
+            </div>
 
-              {/* Right Pillar */}
-              <motion.div
-                initial={{ x: 50, opacity: 0 }}
-                whileInView={{ x: 0, opacity: 1 }}
-                viewport={{ once: true }}
-                className="bg-zinc-900/80 backdrop-blur border border-white/10 px-5 py-2.5 rounded-full flex items-center gap-3"
-              >
-                <div className="p-1.5 rounded-full bg-blue-500/20">
-                  <Folder className="h-4 w-4 text-blue-400" />
+            {/* Sales Conversions Node */}
+            <div className="absolute top-[51%] left-[75%] -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-auto">
+              <motion.div initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: 0.3 }} className="bg-[#0a0514] border border-white/5 pl-1.5 pr-4 md:pl-2 md:pr-6 py-1.5 md:py-2 rounded-full flex flex-col md:flex-row items-center gap-1.5 md:gap-3 shadow-[0_0_20px_rgba(168,85,247,0.1)] ring-1 ring-primary/20 hover:ring-primary/50 cursor-pointer whitespace-nowrap">
+                <div className="h-6 w-6 md:h-8 md:w-8 flex-shrink-0 rounded-full bg-primary/20 flex items-center justify-center">
+                  <Folder className="h-3 w-3 md:h-4 md:w-4 text-primary" />
                 </div>
-                <span className="text-sm font-medium">Sales Conversions</span>
+                <span className="text-[10px] md:text-sm font-bold text-white tracking-wide">Sales Conversions</span>
               </motion.div>
             </div>
 
-            {/* Bottom SVG Lines to Brand */}
-            <div className="absolute top-1/2 left-0 w-full h-1/2 pointer-events-none opacity-40">
-              <svg className="w-full h-full" viewBox="0 0 1000 100" preserveAspectRatio="none">
-                <path d="M500,0 L500,60" stroke="#a855f7" strokeWidth="2" fill="none" />
-                <path d="M300,40 Q300,60 500,60" stroke="#a855f7" strokeWidth="2" fill="none" />
-                <path d="M700,40 Q700,60 500,60" stroke="#a855f7" strokeWidth="2" fill="none" />
-              </svg>
-            </div>
-
-            {/* Bottom Circle: Your Brand */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
-              <motion.div
-                initial={{ scale: 0 }}
-                whileInView={{ scale: 1 }}
-                viewport={{ once: true }}
-                className="w-24 h-24 rounded-full bg-black border-4 border-purple-500 flex flex-col items-center justify-center p-2 shadow-[0_0_50_rgba(168,85,247,0.4)]"
-              >
-                <span className="text-[10px] font-bold uppercase tracking-widest text-purple-400">Your</span>
-                <span className="text-sm font-black uppercase tracking-tight text-white">Brand</span>
+            {/* Your Brand Node */}
+            <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-auto">
+              <motion.div initial={{ scale: 0 }} whileInView={{ scale: 1 }} viewport={{ once: true }} transition={{ delay: 0.5, type: 'spring' }} className="w-20 h-20 md:w-[110px] md:h-[110px] rounded-full bg-[#05020a] border-[2px] md:border-[3px] border-[#9333ea] flex flex-col items-center justify-center p-2 shadow-[0_0_40px_rgba(147,51,234,0.4)] hover:scale-105 transition-transform duration-300 ring-2 md:ring-4 ring-[#9333ea]/20 ring-offset-4 md:ring-offset-8 ring-offset-[#05020a] cursor-pointer group">
+                <div className="absolute -inset-2 md:-inset-3 rounded-full border border-[#9333ea]/30 pointer-events-none group-hover:scale-110 transition-transform duration-500" />
+                <div className="absolute -inset-4 md:-inset-6 rounded-full border border-[#9333ea]/10 pointer-events-none group-hover:scale-120 transition-transform duration-500 delay-75" />
+                <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-[#9333ea] mb-0.5 md:mb-1">Your</span>
+                <span className="text-sm md:text-xl font-black uppercase tracking-tight text-white leading-none">Brand</span>
               </motion.div>
             </div>
+
           </div>
         </div>
       </div>

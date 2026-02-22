@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { careersSupabase, Certification, SiteSection } from "@/integrations/supabase/careersClient";
+import { useAuth } from "@/hooks/useAuth";
+import { logActivity } from "@/utils/auditLogger";
 
 export const CertificationsManagementSection = () => {
     const [certifications, setCertifications] = useState<Certification[]>([]);
@@ -29,6 +31,7 @@ export const CertificationsManagementSection = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
+    const { user } = useAuth();
     const [editingCert, setEditingCert] = useState<Certification | null>(null);
 
     // Form state
@@ -86,6 +89,17 @@ export const CertificationsManagementSection = () => {
 
             if (error) throw error;
             setVisibility({ ...visibility, is_visible: newState });
+
+            // Log visibility toggle
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'update',
+                targetType: 'site_section_visibility',
+                targetId: 'certifications_home',
+                description: `Toggled certifications home section visibility to: ${newState ? 'visible' : 'hidden'}`
+            });
+
             toast.success(`Home section ${newState ? 'enabled' : 'disabled'}`);
         } catch (err: any) {
             toast.error("Failed to update visibility");
@@ -103,6 +117,17 @@ export const CertificationsManagementSection = () => {
             setCertifications(certifications.map(c =>
                 c.id === cert.id ? { ...c, is_active: !c.is_active } : c
             ));
+
+            // Log cert status toggle
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'update',
+                targetType: 'certification_status',
+                targetId: cert.id,
+                description: `Toggled status for certification ${cert.title} to: ${!cert.is_active ? 'active' : 'inactive'}`
+            });
+
             toast.success(`Certification ${!cert.is_active ? 'activated' : 'deactivated'}`);
         } catch (err: any) {
             toast.error("Failed to update status");
@@ -131,6 +156,16 @@ export const CertificationsManagementSection = () => {
             }
 
             setCertifications(certifications.filter(c => c.id !== cert.id));
+            // Log deletion
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'delete',
+                targetType: 'certification',
+                targetId: cert.id,
+                description: `Deleted certification: ${cert.title}`
+            });
+
             toast.success("Certification deleted");
         } catch (err: any) {
             toast.error("Failed to delete certification");
@@ -201,6 +236,18 @@ export const CertificationsManagementSection = () => {
                     .eq('id', editingCert.id);
 
                 if (error) throw error;
+
+                // Log update
+                logActivity({
+                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                    adminEmail: user?.email || "Unknown",
+                    actionType: 'update',
+                    targetType: 'certification',
+                    targetId: editingCert.id,
+                    targetData: submissionData,
+                    description: `Updated certification: ${formData.title}`
+                });
+
                 toast.success("Certification updated");
             } else {
                 const { error } = await careersSupabase
@@ -208,6 +255,17 @@ export const CertificationsManagementSection = () => {
                     .insert(submissionData);
 
                 if (error) throw error;
+
+                // Log creation
+                logActivity({
+                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                    adminEmail: user?.email || "Unknown",
+                    actionType: 'create',
+                    targetType: 'certification',
+                    targetData: submissionData,
+                    description: `Added new certification: ${formData.title}`
+                });
+
                 toast.success("Certification added");
             }
 

@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { Plus, Trash2, Edit2, Video, Loader2, Upload, Eye, EyeOff, LayoutGrid, Smartphone, MapPin } from "lucide-react";
 import { reelsSupabase as supabase } from "@/integrations/supabase/reels-client";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
+import { logActivity } from "@/utils/auditLogger";
 
 interface Reel {
     id: string;
@@ -34,6 +36,7 @@ export const ReelsSection = () => {
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
+    const { user } = useAuth();
     const [previewVideo, setPreviewVideo] = useState<string | null>(null);
 
     // Form State
@@ -133,12 +136,35 @@ export const ReelsSection = () => {
                     .update(reelData)
                     .eq("id", editingId);
                 if (error) throw error;
+
+                // Log update
+                logActivity({
+                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                    adminEmail: user?.email || "Unknown",
+                    actionType: 'update',
+                    targetType: 'reel',
+                    targetId: editingId,
+                    targetData: reelData,
+                    description: `Updated promotional reel: ${form.title}`
+                });
+
                 toast.success("Reel updated successfully");
             } else {
                 const { error } = await supabase
                     .from("reels")
                     .insert([reelData]);
                 if (error) throw error;
+
+                // Log creation
+                logActivity({
+                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                    adminEmail: user?.email || "Unknown",
+                    actionType: 'create',
+                    targetType: 'reel',
+                    targetData: reelData,
+                    description: `Created new promotional reel: ${form.title}`
+                });
+
                 toast.success("Reel created successfully");
             }
 
@@ -181,6 +207,17 @@ export const ReelsSection = () => {
                 .eq("id", id);
 
             if (error) throw error;
+
+            // Log deletion
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'delete',
+                targetType: 'reel',
+                targetId: id,
+                description: `Deleted promotional reel (ID: ${id})`
+            });
+
             toast.success("Reel deleted");
             setReels(prev => prev.filter(r => r.id !== id));
         } catch (error: any) {
@@ -196,7 +233,17 @@ export const ReelsSection = () => {
                 .eq("id", reel.id);
 
             if (error) throw error;
-            setReels(prev => prev.map(r => r.id === reel.id ? { ...r, is_active: !r.is_active } : r));
+
+            // Log status toggle
+            logActivity({
+                adminName: user?.user_metadata?.full_name || user?.email || "Admin",
+                adminEmail: user?.email || "Unknown",
+                actionType: 'update',
+                targetType: 'reel_status',
+                targetId: reel.id,
+                description: `Toggled status for reel ${reel.title} to: ${!reel.is_active ? 'active' : 'inactive'}`
+            });
+
             toast.success(`Reel ${!reel.is_active ? 'activated' : 'deactivated'}`);
         } catch (error: any) {
             toast.error(error.message);

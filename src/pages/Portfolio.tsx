@@ -4,8 +4,10 @@ import { Layout } from "@/components/layout/Layout";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUpRight, Filter, Sparkles, Layers, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { servicesSupabase as supabase, isServicesSupabaseConfigured } from "@/integrations/supabase/servicesClient";
+import { supabase, isConfigured as isSupabaseConfigured } from "@/integrations/supabase/client";
+import { isServicesSupabaseConfigured, servicesSupabase } from "@/integrations/supabase/servicesClient";
 import { GridSkeleton, PortfolioCardSkeleton } from "@/components/ui/LoadingSkeletons";
+import { Card3DTilt } from "@/components/ui/Card3DTilt";
 
 // Type definition for projects
 interface Project {
@@ -83,7 +85,7 @@ const Portfolio = () => {
       }
 
       try {
-        const { data, error } = await supabase
+        const { data, error } = await servicesSupabase
           .from("portfolio_projects")
           .select("*")
           .eq("is_active", true)
@@ -197,49 +199,52 @@ const Portfolio = () => {
                         onMouseEnter={() => setHoveredProject(project.id)}
                         onMouseLeave={() => setHoveredProject(null)}
                       >
-                        <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-slate-900 border border-white/10">
-                          {/* Image */}
-                          <img
-                            src={project.image}
-                            alt={project.title}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                            loading="lazy"
-                          />
+                        <Card3DTilt maxTilt={10} glareEnabled={true}>
+                          <div className="relative overflow-hidden rounded-2xl aspect-[4/3] mb-6 border border-white/10 bg-slate-900">
+                            {/* Image Hover Zoom */}
+                            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors duration-500 z-10" />
+                            <img
+                              src={project.image}
+                              alt={project.title}
+                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 will-change-transform"
+                              loading="lazy"
+                            />
 
-                          {/* Overlay Gradient */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-300" />
-
-                          {/* Content Overlay */}
-                          <a href={project.link || "#"} target="_blank" rel="noopener noreferrer" className="absolute inset-0 z-20">
-                            <div className="absolute inset-0 p-6 flex flex-col justify-end translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                              <div className="mb-auto flex justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">
-                                <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 hover:bg-white/30 transition-colors">
-                                  <ArrowUpRight className="h-5 w-5 text-white" />
+                            {/* Search/Link Icon Overlay */}
+                            <a href={project.link || "#"} target="_blank" rel="noopener noreferrer" className="absolute inset-0 z-20">
+                              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg">
+                                  <ArrowUpRight className="h-6 w-6 text-black" />
                                 </div>
                               </div>
+                            </a>
+                          </div>
 
-                              <div className="relative">
-                                <div className={`h-1 w-12 mb-4 rounded-full bg-gradient-to-r ${project.color}`} />
-                                <span className="text-xs font-bold uppercase tracking-wider text-white/70 mb-2 block">
-                                  {project.category}
-                                </span>
-                                <h3 className="text-2xl font-bold text-white mb-2">{project.title}</h3>
-                                <p className="text-slate-300 text-sm line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 h-0 group-hover:h-auto overflow-hidden">
-                                  {project.description}
-                                </p>
-
-                                {/* Tags */}
-                                <div className="flex gap-2 mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75 transform translate-y-4 group-hover:translate-y-0">
-                                  {project.tags.map(tag => (
-                                    <span key={tag} className="text-[10px] px-2 py-1 rounded bg-white/10 text-white border border-white/10 backdrop-blur-sm">
-                                      {tag}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
+                          <div className="space-y-4 px-2 pb-4">
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                                {project.category}
+                              </span>
+                              <div className={`h-[2px] w-8 rounded-full bg-gradient-to-r ${project.color}`} />
                             </div>
-                          </a>
-                        </div>
+
+                            <a href={project.link || "#"} target="_blank" rel="noopener noreferrer" className="block text-2xl font-bold text-white group-hover:text-purple-400 transition-colors cursor-pointer">
+                              {project.title}
+                            </a>
+
+                            <p className="text-slate-400 leading-relaxed max-w-md line-clamp-2 text-sm">
+                              {project.description}
+                            </p>
+
+                            <div className="flex flex-wrap gap-2 pt-2">
+                              {project.tags.map((tag: string, i: number) => (
+                                <span key={i} className="px-2 py-1 rounded-md border border-white/10 text-[10px] text-slate-400 uppercase tracking-wider bg-white/[0.02]">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </Card3DTilt>
                       </motion.div>
                     ))}
                   </AnimatePresence>

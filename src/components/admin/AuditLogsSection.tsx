@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { servicesSupabase } from "@/integrations/supabase/servicesClient";
+import { servicesSupabase, isServicesSupabaseConfigured } from "@/integrations/supabase/servicesClient";
+import { reelsSupabase, isReelsSupabaseConfigured } from "@/integrations/supabase/reels-client";
 import {
     Table,
     TableBody,
@@ -12,7 +13,30 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Shield, Download, Trash2, FileText } from "lucide-react";
+import {
+    Activity,
+    LogOut,
+    LogIn,
+    Shield,
+    FileText,
+    Search,
+    Download,
+    RefreshCw,
+    User,
+    Clock,
+    Globe,
+    AlertCircle,
+    Calendar,
+    ChevronDown,
+    Filter,
+    Table as TableIcon,
+    Trash2,
+    CheckCircle2,
+    Eye,
+    Plus,
+    X,
+    Loader2
+} from "lucide-react";
 import { format, formatDistance } from "date-fns";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -56,6 +80,7 @@ export const AuditLogsSection = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [isLoading, setIsLoading] = useState(true);
     const [selectedLogs, setSelectedLogs] = useState<string[]>([]);
+    const [selectedActivityLogs, setSelectedActivityLogs] = useState<string[]>([]);
     const [confirmDialog, setConfirmDialog] = useState<{
         open: boolean;
         title: string;
@@ -75,38 +100,50 @@ export const AuditLogsSection = () => {
         fetchActivityLogs();
 
         // Real-time updates for Session Logs
-        const sessionChannel = supabase
-            .channel('admin_audit_logs')
+        const channel = supabase
+            .channel('schema-db-changes')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_login_logs' }, () => {
                 fetchLogs();
             })
-            .subscribe();
-
-        // Real-time updates for Activity Logs
-        const activityChannel = servicesSupabase
-            .channel('admin_activity_logs_realtime')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_activity_logs' }, () => {
                 fetchActivityLogs();
             })
             .subscribe();
 
+        // Real-time updates for Activity Logs (from Reels Account)
+        if (isReelsSupabaseConfigured) {
+            reelsSupabase
+                .channel('activity-db-changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_activity_logs' }, () => {
+                    fetchActivityLogs();
+                })
+                .subscribe();
+        }
+
         return () => {
-            supabase.removeChannel(sessionChannel);
-            servicesSupabase.removeChannel(activityChannel);
+            supabase.removeChannel(channel);
+            if (isReelsSupabaseConfigured) {
+                reelsSupabase.channel('activity-db-changes').unsubscribe();
+            }
         };
     }, []);
 
     const fetchActivityLogs = async () => {
         try {
             setIsActivityLoading(true);
-            const { data, error } = await servicesSupabase
+            const client = isReelsSupabaseConfigured ? reelsSupabase : supabase;
+            const { data, error } = await client
                 .from("admin_activity_logs")
                 .select("*")
                 .order("created_at", { ascending: false });
 
             if (error) {
                 // If the table doesn't exist yet, it's fine, just show empty
-                if (error.code === '42P01') {
+                const isMissingTable = error.code === '42P01' ||
+                    error.message?.includes('schema cache') ||
+                    error.message?.includes('not find the table');
+
+                if (isMissingTable) {
                     setActivityLogs([]);
                 } else {
                     throw error;
@@ -135,7 +172,18 @@ export const AuditLogsSection = () => {
                 `)
                 .order("created_at", { ascending: false });
 
-            if (error) throw error;
+            if (error) {
+                // Handle missing table gracefully
+                const isMissingTable = error.code === '42P01' ||
+                    error.message?.includes('schema cache') ||
+                    error.message?.includes('not find the table');
+
+                if (isMissingTable) {
+                    setLogs([]);
+                    return;
+                }
+                throw error;
+            }
             setLogs(data || []);
         } catch (error) {
             console.error("Error fetching audit logs:", error);
@@ -213,6 +261,87 @@ export const AuditLogsSection = () => {
         );
     };
 
+    const handleDeleteActivity = (logId: string) => {
+        confirmAction(
+            "Delete Activity Record",
+            "Are you sure you want to permanently delete this activity record? This action cannot be undone.",
+            async () => {
+                try {
+                    const client = isReelsSupabaseConfigured ? reelsSupabase : supabase;
+                    const { error } = await client
+                        .from('admin_activity_logs')
+                        .delete()
+                        .eq('id', logId);
+
+                    if (error) throw error;
+                    toast.success("Activity record deleted successfully.");
+                    setActivityLogs(prev => prev.filter(log => log.id !== logId));
+                    setSelectedActivityLogs(prev => prev.filter(id => id !== logId));
+                } catch (err: any) {
+                    console.error("Failed to delete activity log:", err);
+                    toast.error("Failed to delete activity record: " + err.message);
+                }
+            },
+            "destructive",
+            "Delete Activity"
+        );
+    };
+
+    const handleBulkDeleteActivity = () => {
+        if (selectedActivityLogs.length === 0) return;
+        confirmAction(
+            "Delete Multiple Activities",
+            `Are you sure you want to delete ${selectedActivityLogs.length} selected activity records? This action cannot be undone.`,
+            async () => {
+                try {
+                    const client = isReelsSupabaseConfigured ? reelsSupabase : supabase;
+                    const { error } = await client
+                        .from('admin_activity_logs')
+                        .delete()
+                        .in('id', selectedActivityLogs);
+
+                    if (error) throw error;
+                    toast.success(`${selectedActivityLogs.length} activity records deleted successfully.`);
+                    setActivityLogs(prev => prev.filter(log => !selectedActivityLogs.includes(log.id)));
+                    setSelectedActivityLogs([]);
+                } catch (err: any) {
+                    console.error("Failed to delete activity logs:", err);
+                    toast.error("Failed to delete selected records: " + err.message);
+                }
+            },
+            "destructive",
+            `Delete ${selectedActivityLogs.length} Activities`
+        );
+    };
+
+    const handleDeleteAllActivity = () => {
+        confirmAction(
+            "Clear All Activity Logs",
+            "Are you sure you want to delete ALL activity logs? This action is permanent and cannot be undone.",
+            async () => {
+                try {
+                    const client = isReelsSupabaseConfigured ? reelsSupabase : supabase;
+                    // Delete all records - typically requires a filter in Supabase unless using a RPC or specific bypass
+                    // For safety and compatibility with standard delete, we use a filter that matches all (like checking if id is not null)
+                    const { error } = await client
+                        .from('admin_activity_logs')
+                        .delete()
+                        .neq('id', '00000000-0000-0000-0000-000000000000'); // Dummy check to match all UUIDs
+
+                    if (error) throw error;
+                    toast.success("All activity logs have been cleared.");
+                    setActivityLogs([]);
+                    setSelectedActivityLogs([]);
+                } catch (err: any) {
+                    console.error("Failed to clear activity logs:", err);
+                    toast.error("Failed to clear activity logs: " + err.message);
+                }
+            },
+            "destructive",
+            "Clear All Logs"
+        );
+    };
+
     const handleExportCSV = () => {
         if (logs.length === 0) {
             toast.warning("No logs to export.");
@@ -275,22 +404,22 @@ export const AuditLogsSection = () => {
                     // Import dynamically to avoid circle deps if any, though utils usually fine
                     const { generateAuditLogPDF } = await import("@/utils/pdfGenerator");
 
-                    const filename = await generateAuditLogPDF(logs, (progressMsg) => {
+                    const { filename, localUrl } = await generateAuditLogPDF(logs, (progressMsg) => {
                         toast.loading(progressMsg, { id: toastId });
                     });
 
                     toast.success("Secure PDF generated successfully!", { id: toastId });
 
-                    // Optional: Auto-download the file as well
-                    const { data } = supabase.storage.from('admin_logs').getPublicUrl(filename);
-                    if (data?.publicUrl) {
-                        const link = document.createElement("a");
-                        link.href = data.publicUrl;
-                        link.download = filename;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                    }
+                    // Use the localUrl for immediate download - bypasses storage RLS issues
+                    const link = document.createElement("a");
+                    link.href = localUrl;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    // Clean up blob URL after download
+                    setTimeout(() => URL.revokeObjectURL(localUrl), 100);
 
                 } catch (error: any) {
                     console.error("Export PDF Error:", error);
@@ -317,7 +446,16 @@ export const AuditLogsSection = () => {
         log.portal_users?.role?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const filteredActivityLogs = activityLogs.filter(log =>
+        log.admin_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.admin_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.action_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.target_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     const isAllSelected = filteredLogs.length > 0 && selectedLogs.length === filteredLogs.length;
+    const isAllActivitySelected = filteredActivityLogs.length > 0 && selectedActivityLogs.length === filteredActivityLogs.length;
 
     const toggleSelectAll = (checked: boolean) => {
         if (checked) {
@@ -332,6 +470,22 @@ export const AuditLogsSection = () => {
             setSelectedLogs(selectedLogs.filter(id => id !== logId));
         } else {
             setSelectedLogs([...selectedLogs, logId]);
+        }
+    };
+
+    const toggleSelectAllActivity = (checked: boolean) => {
+        if (checked) {
+            setSelectedActivityLogs(filteredActivityLogs.map(log => log.id));
+        } else {
+            setSelectedActivityLogs([]);
+        }
+    };
+
+    const toggleSelectActivityLog = (logId: string) => {
+        if (selectedActivityLogs.includes(logId)) {
+            setSelectedActivityLogs(selectedActivityLogs.filter(id => id !== logId));
+        } else {
+            setSelectedActivityLogs([...selectedActivityLogs, logId]);
         }
     };
 
@@ -380,9 +534,34 @@ export const AuditLogsSection = () => {
 
                 <TabsContent value="sessions">
                     <div className="bg-[#110C1D] border border-white/5 rounded-xl shadow-sm overflow-hidden">
-                        <div className="border-b border-white/5 px-6 py-4 flex items-center gap-2">
-                            <Shield className="h-5 w-5 text-purple-400" />
-                            <h3 className="font-semibold text-white">Access History</h3>
+                        <div className="border-b border-white/5 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-center gap-2">
+                                <Shield className="h-5 w-5 text-purple-400" />
+                                <h3 className="font-semibold text-white">Access History</h3>
+                            </div>
+
+                            {selectedLogs.length > 0 && (
+                                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4">
+                                    <span className="text-xs text-slate-500 font-medium mr-2">{selectedLogs.length} selected</span>
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={handleBulkDelete}
+                                        className="h-8 bg-red-600/10 text-red-400 border border-red-500/20 hover:bg-red-600 hover:text-white transition-all gap-2"
+                                    >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                        Delete Selected
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setSelectedLogs([])}
+                                        className="h-8 text-slate-500 hover:text-white"
+                                    >
+                                        Cancel
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                         <div className="max-h-[600px] overflow-auto custom-scrollbar">
                             <Table>
@@ -506,20 +685,68 @@ export const AuditLogsSection = () => {
 
                 <TabsContent value="activity">
                     <div className="bg-[#110C1D] border border-white/5 rounded-xl shadow-sm overflow-hidden">
-                        <div className="border-b border-white/5 px-6 py-4 flex items-center gap-2">
-                            <Shield className="h-5 w-5 text-blue-400" />
-                            <h3 className="font-semibold text-white">System Activities</h3>
+                        <div className="border-b border-white/5 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-center gap-2">
+                                <Shield className="h-5 w-5 text-blue-400" />
+                                <h3 className="font-semibold text-white">System Activities</h3>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                {selectedActivityLogs.length > 0 ? (
+                                    <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4">
+                                        <span className="text-xs text-slate-500 font-medium mr-2">{selectedActivityLogs.length} selected</span>
+                                        <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            onClick={handleBulkDeleteActivity}
+                                            className="h-8 bg-red-600/10 text-red-400 border border-red-500/20 hover:bg-red-600 hover:text-white transition-all gap-2"
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                            Delete Selected
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setSelectedActivityLogs([])}
+                                            className="h-8 text-slate-500 hover:text-white"
+                                        >
+                                            Cancel
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    canDelete && activityLogs.length > 0 && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={handleDeleteAllActivity}
+                                            className="h-8 text-red-400 hover:text-red-300 hover:bg-red-500/10 gap-2"
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                            Clear All Logs
+                                        </Button>
+                                    )
+                                )}
+                            </div>
                         </div>
                         <div className="max-h-[600px] overflow-auto custom-scrollbar">
                             <Table>
                                 <TableHeader className="bg-white/[0.02] sticky top-0 backdrop-blur-sm z-10">
                                     <TableRow className="hover:bg-transparent border-white/5">
-                                        <TableHead className="text-slate-500 text-xs font-bold uppercase tracking-wider pl-6">Admin</TableHead>
+                                        <TableHead className="w-[50px] pl-6">
+                                            {canDelete && (
+                                                <Checkbox
+                                                    checked={isAllActivitySelected}
+                                                    onCheckedChange={(checked) => toggleSelectAllActivity(checked as boolean)}
+                                                    className="border-white/20 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                                                />
+                                            )}
+                                        </TableHead>
+                                        <TableHead className="text-slate-500 text-xs font-bold uppercase tracking-wider">Admin</TableHead>
                                         <TableHead className="text-slate-500 text-xs font-bold uppercase tracking-wider">Action</TableHead>
                                         <TableHead className="text-slate-500 text-xs font-bold uppercase tracking-wider">Target</TableHead>
                                         <TableHead className="text-slate-500 text-xs font-bold uppercase tracking-wider">Description</TableHead>
                                         <TableHead className="text-slate-500 text-xs font-bold uppercase tracking-wider">Timestamp</TableHead>
-                                        <TableHead className="text-slate-500 text-xs font-bold uppercase tracking-wider text-right pr-6">Data</TableHead>
+                                        <TableHead className="text-slate-500 text-xs font-bold uppercase tracking-wider text-right pr-6">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -535,6 +762,15 @@ export const AuditLogsSection = () => {
                                         activityLogs.map((log) => (
                                             <TableRow key={log.id} className="hover:bg-white/[0.02] border-white/5 transition-colors group">
                                                 <TableCell className="pl-6">
+                                                    {canDelete && (
+                                                        <Checkbox
+                                                            checked={selectedActivityLogs.includes(log.id)}
+                                                            onCheckedChange={() => toggleSelectActivityLog(log.id)}
+                                                            className="border-white/20 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                                                        />
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
                                                     <div className="flex flex-col">
                                                         <span className="font-semibold text-sm text-slate-300">{log.admin_name || "Unknown"}</span>
                                                         <span className="text-[10px] text-slate-500">{log.admin_email}</span>
@@ -562,15 +798,27 @@ export const AuditLogsSection = () => {
                                                     {format(new Date(log.created_at), "MMM d, HH:mm:ss")}
                                                 </TableCell>
                                                 <TableCell className="text-right pr-6">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => setViewingLog(log)}
-                                                        className="h-8 px-2 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 gap-1.5"
-                                                    >
-                                                        <FileText className="h-3.5 w-3.5" />
-                                                        <span className="text-[10px] font-bold uppercase tracking-wider">Inspect</span>
-                                                    </Button>
+                                                    <div className="flex justify-end gap-1 items-center">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => setViewingLog(log)}
+                                                            className="h-8 px-2 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 gap-1.5"
+                                                        >
+                                                            <FileText className="h-3.5 w-3.5" />
+                                                            <span className="text-[10px] font-bold uppercase tracking-wider">Inspect</span>
+                                                        </Button>
+                                                        {canDelete && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() => handleDeleteActivity(log.id)}
+                                                                className="h-8 w-8 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
                                                 </TableCell>
                                             </TableRow>
                                         ))

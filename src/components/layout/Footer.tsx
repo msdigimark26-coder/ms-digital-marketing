@@ -6,7 +6,8 @@ import {
   Mail,
   Phone,
   MapPin,
-  ArrowUpRight
+  ArrowUpRight,
+  Youtube
 } from "lucide-react";
 import { Clock } from "@/components/ui/Clock";
 
@@ -34,6 +35,7 @@ const footerLinks = {
 const socialLinks = [
   { icon: Instagram, href: "https://www.instagram.com/msdigimark26/?utm_source=ig_web_button_share_sheet", label: "Instagram" },
   { icon: Linkedin, href: "https://www.linkedin.com/in/ms-digi-mark-7b45083a2/", label: "LinkedIn" },
+  { icon: Youtube, href: "https://www.youtube.com/@MSDIGIMARK-26", label: "YouTube" },
 ];
 
 export const Footer = () => {
@@ -61,7 +63,7 @@ export const Footer = () => {
             whiteSpace: 'nowrap',
           }}
         >
-          MS DIGI MARK
+          MS DIGIMARK
         </span>
       </div>
 
@@ -69,9 +71,14 @@ export const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           {/* Brand Section */}
           <div className="lg:col-span-1">
-            <Link to="/" className="inline-block mb-6">
-              <span className="font-display text-2xl font-bold text-gradient">
-                MS DIGI MARK
+            <Link to="/" className="flex items-center gap-3 mb-6 group">
+              <img
+                src="/logo-new.png"
+                alt="MS Digi Mark"
+                className="h-10 md:h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+              />
+              <span className="font-display text-xl md:text-2xl font-black tracking-tight text-gradient">
+                MS DIGIMARK
               </span>
             </Link>
             <p className="text-muted-foreground mb-6 leading-relaxed">
@@ -180,7 +187,7 @@ export const Footer = () => {
         <div className="mt-16 pt-8 border-t border-border/50 flex flex-col md:flex-row justify-between items-center md:items-center gap-8 relative">
           <div className="flex flex-col md:flex-row gap-6 flex-1 items-center md:items-start text-center md:text-left">
             <p className="text-muted-foreground text-sm">
-              © 2026 MS DIGI MARK. All rights reserved.
+              © 2026 MS DIGIMARK. All rights reserved.
             </p>
             <div className="flex gap-6 text-sm text-muted-foreground">
               <Link to="/privacy" className="hover:text-primary transition-colors">

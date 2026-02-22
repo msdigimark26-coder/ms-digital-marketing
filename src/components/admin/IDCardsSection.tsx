@@ -19,6 +19,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { IDCard as IDCardVisual } from "./IDCard";
+import { useAuth } from "@/hooks/useAuth";
+import { logActivity } from "@/utils/auditLogger";
 
 interface PortalUser {
     id: string;
@@ -40,6 +42,7 @@ export const IDCardsSection = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedUser, setSelectedUser] = useState<PortalUser | null>(null);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const { user: currentUser } = useAuth();
     const [isEditing, setIsEditing] = useState<string | null>(null);
     const [editForm, setEditForm] = useState({
         full_name: "",
@@ -86,6 +89,18 @@ export const IDCardsSection = () => {
                 .eq("id", userId);
 
             if (error) throw error;
+
+            // Log update
+            logActivity({
+                adminName: currentUser?.user_metadata?.full_name || currentUser?.email || "Admin",
+                adminEmail: currentUser?.email || "Unknown",
+                actionType: 'update',
+                targetType: 'employee_id_details',
+                targetId: userId,
+                targetData: editForm,
+                description: `Updated ID card details for user: ${userId}`
+            });
+
             toast.success("Employee ID details updated");
             setIsEditing(null);
             fetchUsers();
@@ -107,6 +122,17 @@ export const IDCardsSection = () => {
                 .eq("id", userId);
 
             if (error) throw error;
+
+            // Log reissue
+            logActivity({
+                adminName: currentUser?.user_metadata?.full_name || currentUser?.email || "Admin",
+                adminEmail: currentUser?.email || "Unknown",
+                actionType: 'update',
+                targetType: 'employee_id_reissue',
+                targetId: userId,
+                description: `Reissued ID card for user: ${userId}`
+            });
+
             toast.success("ID Card reissued successfully");
             fetchUsers();
         } catch (error: any) {
@@ -122,6 +148,17 @@ export const IDCardsSection = () => {
                 .update({ id_card_status: nextStatus })
                 .eq("id", user.id);
             if (error) throw error;
+
+            // Log toggle status
+            logActivity({
+                adminName: currentUser?.user_metadata?.full_name || currentUser?.email || "Admin",
+                adminEmail: currentUser?.email || "Unknown",
+                actionType: 'update',
+                targetType: 'employee_id_status',
+                targetId: user.id,
+                description: `Toggled ID card status for user ${user.id} to: ${nextStatus}`
+            });
+
             toast.success(`ID Card ${nextStatus === 'Active' ? 'activated' : 'suspended'}`);
             fetchUsers();
         } catch (error: any) {

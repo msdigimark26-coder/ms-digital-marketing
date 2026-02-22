@@ -63,7 +63,7 @@ const createMockClient = () => {
   };
 };
 
-const isConfigured = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY && SUPABASE_URL !== 'https://placeholder.supabase.co');
+export const isConfigured = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY && SUPABASE_URL !== 'https://placeholder.supabase.co');
 
 if (!isConfigured) {
   console.warn("⚠️ SUPABASE NOT CONFIGURED: Using mock client. Backend features like Login and Notifications won't work until you set your environment variables on Netlify.");
