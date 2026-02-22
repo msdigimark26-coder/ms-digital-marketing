@@ -41,20 +41,19 @@ export const NotificationSection = () => {
 
             const filtered = (data || [])
                 .filter(n => {
-                    const lastDismissedAt = dismissedStore[n.id];
-                    if (!lastDismissedAt) return true;
+                    const dismissedAt = dismissedStore[n.id];
+                    if (!dismissedAt) return true;
 
-                    // If the notification has been updated since last dismissal, show it again
-                    const updatedAt = n.updated_at ? new Date(n.updated_at).getTime() : 0;
-                    return updatedAt > lastDismissedAt;
+                    // Version check: only show if the DB timestamp is strictly newer than what was dismissed
+                    const currentVersion = new Date(n.updated_at || n.created_at).getTime();
+                    return currentVersion > dismissedAt;
                 })
                 .map(n => ({
                     id: n.id,
                     title: n.title,
                     message: n.message,
                     image: n.image || undefined,
-                    timestamp: n.updated_at ? new Date(n.updated_at).getTime() : (n.created_at ? new Date(n.created_at).getTime() : Date.now()),
-                    updatedAt: n.updated_at ? new Date(n.updated_at).getTime() : 0
+                    timestamp: new Date(n.updated_at || n.created_at).getTime()
                 }));
 
             setNotifications(filtered);
@@ -86,7 +85,7 @@ export const NotificationSection = () => {
         if (notifications.length > 0 && !isDetailsOpen) {
             const interval = setInterval(() => {
                 setCurrentIndex(prev => (prev + 1) % notifications.length);
-            }, 5000);
+            }, 2500);
             return () => clearInterval(interval);
         }
     }, [notifications.length, isDetailsOpen]);
@@ -98,6 +97,21 @@ export const NotificationSection = () => {
             });
         }
     }, [currentIndex, notifications.length, isMuted]);
+
+    // Auto-dismiss on scroll
+    useEffect(() => {
+        if (notifications.length === 0 || !notifications[currentIndex]) return;
+
+        const handleScroll = () => {
+            // Add a threshold (e.g., 50px) to prevent accidental dismissal
+            if (window.scrollY > 50) {
+                dismiss();
+            }
+        };
+
+        window.addEventListener("scroll", handleScroll, { passive: true });
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, [notifications.length, currentIndex]);
 
     if (notifications.length === 0) return null;
 
@@ -111,11 +125,13 @@ export const NotificationSection = () => {
 
     if (!currentNotif) return null;
 
-    const dismiss = (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const dismiss = (e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        if (!currentNotif) return;
+
         const dismissedStore = JSON.parse(localStorage.getItem("msdigimark_dismissed_notifications_v3") || "{}");
-        // Store the current update time so we know when it was dismissed
-        dismissedStore[currentNotif.id] = Date.now();
+        // Use the notification's own timestamp as the "version" we've dismissed
+        dismissedStore[currentNotif.id] = currentNotif.timestamp;
         localStorage.setItem("msdigimark_dismissed_notifications_v3", JSON.stringify(dismissedStore));
 
         const updated = notifications.filter(n => n.id !== currentNotif.id);
@@ -151,37 +167,47 @@ export const NotificationSection = () => {
 
     return (
         <>
-            <div className="fixed top-1/2 -translate-y-1/2 right-6 z-[9999] max-w-[320px] md:max-w-[420px] pointer-events-none">
+            <div className="fixed top-[70%] md:top-[75%] -translate-y-1/2 right-4 left-4 md:right-6 md:left-auto z-[9999] w-[calc(100vw-2rem)] md:w-auto md:max-w-[340px] pointer-events-none">
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={currentNotif.id}
-                        initial={{ opacity: 0, x: 40, scale: 0.95 }}
+                        initial={{ opacity: 0, x: 20, scale: 0.95 }}
                         animate={{ opacity: 1, x: 0, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95, x: 40, transition: { duration: 0.2 } }}
+                        exit={{ opacity: 0, scale: 0.95, x: 100, transition: { duration: 0.2 } }}
+                        drag="x"
+                        dragConstraints={{ left: 0, right: 300 }}
+                        dragElastic={{ left: 0, right: 0.5 }}
+                        onDragEnd={(_, info) => {
+                            if (info.offset.x > 100) {
+                                // Simulate click for dismiss logic
+                                const event = { stopPropagation: () => { } } as React.MouseEvent;
+                                dismiss(event);
+                            }
+                        }}
                         onClick={handleViewDetails}
                         className="relative group pointer-events-auto cursor-pointer will-change-[transform,opacity]"
                     >
                         {/* Apple-style Glass Container */}
-                        <div className="relative overflow-hidden bg-[#1a1a24]/70 backdrop-blur-2xl border border-white/20 rounded-[2rem] shadow-[0_15px_35px_rgba(0,0,0,0.4)] p-4 transition-all duration-500 hover:scale-[1.02] active:scale-[0.98]">
-                            <div className="flex gap-4 items-start">
+                        <div className="relative overflow-hidden bg-[#1a1a24]/80 backdrop-blur-2xl border border-white/20 rounded-[1.25rem] md:rounded-[1.5rem] shadow-[0_15px_35px_rgba(0,0,0,0.4)] p-3 md:p-3.5 transition-all duration-500 hover:scale-[1.02] active:scale-[0.98]">
+                            <div className="flex gap-3 items-start">
                                 {/* iOS Icon Style */}
                                 <div className="relative flex-shrink-0">
-                                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center border border-white/10 overflow-hidden shadow-lg">
+                                    <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center border border-white/10 overflow-hidden shadow-lg">
                                         {currentNotif.image ? (
                                             <img src={currentNotif.image} alt="" className="w-full h-full object-cover" />
                                         ) : (
-                                            <Bell className="h-6 w-6 text-white" />
+                                            <Bell className="h-4 w-4 md:h-5 md:w-5 text-white" />
                                         )}
                                     </div>
                                 </div>
 
                                 <div className="flex-1 min-w-0 flex flex-col pt-0.5">
-                                    <div className="flex items-center justify-between mb-0.5">
-                                        <h4 className="text-sm md:text-base font-bold text-white truncate pr-2">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <h4 className="text-[11px] md:text-sm font-bold text-white truncate pr-1">
                                             {currentNotif.title}
                                         </h4>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="text-[8px] md:text-[9px] text-slate-400 font-medium whitespace-nowrap">
                                                 {formatRelativeTime(currentNotif.timestamp)}
                                             </span>
                                             <div className="flex items-center gap-1">
@@ -189,19 +215,19 @@ export const NotificationSection = () => {
                                                     onClick={toggleMute}
                                                     className="p-1 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all"
                                                 >
-                                                    {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                                                    {isMuted ? <VolumeX className="h-2.5 w-2.5 md:h-3 md:w-3" /> : <Volume2 className="h-3 w-3" />}
                                                 </button>
                                                 <button
                                                     onClick={dismiss}
                                                     className="p-1 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all"
                                                 >
-                                                    <X className="h-3 w-3" />
+                                                    <X className="h-2.5 w-2.5 md:h-3 md:w-3" />
                                                 </button>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <p className="text-[12px] md:text-[14px] text-slate-300 line-clamp-2 leading-snug">
+                                    <p className="text-[10px] md:text-[13px] text-slate-300 line-clamp-2 leading-snug md:leading-normal">
                                         {currentNotif.message}
                                     </p>
                                 </div>
