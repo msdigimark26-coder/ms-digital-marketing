@@ -121,26 +121,26 @@
 
 @layer components {
   .glass {
-    @apply bg-background/60 border border-white/10;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    transform: translateZ(0);
+    @apply bg-background/40 border border-white/10;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transform: translate3d(0, 0, 0);
     will-change: transform;
   }
 
   @media (max-width: 768px) {
     .glass {
-      backdrop-filter: blur(8px);
-      /* Reduce blur on mobile */
-      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      @apply bg-background/80;
     }
   }
 
   .glass-card {
-    @apply bg-[#110C1D] border border-white/5 rounded-xl;
-    backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(3px);
-    transform: translateZ(0);
+    @apply bg-[#110C1D]/80 border border-white/5 rounded-xl;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    transform: translate3d(0, 0, 0);
     will-change: transform;
     contain: content;
   }

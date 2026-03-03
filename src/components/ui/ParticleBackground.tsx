@@ -76,15 +76,20 @@ export const ParticleBackground = ({
             () => new Particle(canvas.width, canvas.height)
         );
 
-        // Mouse move handler
+        // Mouse move handler with throttling
+        let lastMouseMove = 0;
         const handleMouseMove = (e: MouseEvent) => {
+            const now = Date.now();
+            if (now - lastMouseMove < 16) return; // ~60fps
+            lastMouseMove = now;
+
             const rect = canvas.getBoundingClientRect();
             mouseRef.current = {
                 x: e.clientX - rect.left,
                 y: e.clientY - rect.top
             };
         };
-        canvas.addEventListener("mousemove", handleMouseMove);
+        canvas.addEventListener("mousemove", handleMouseMove, { passive: true });
 
         // Animation loop
         let animationFrameId: number;

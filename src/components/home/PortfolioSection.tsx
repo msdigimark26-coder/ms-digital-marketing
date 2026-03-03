@@ -146,14 +146,17 @@ export const PortfolioSection = () => {
                 <div className="relative overflow-hidden rounded-2xl aspect-[4/3] mb-6">
                   {/* Image Hover Zoom */}
                   <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors duration-500 z-10" />
-                  <img
-                    src={project.image}
-                    alt={project.title}
-                    loading="lazy"
-                    width={800}
-                    height={600}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 will-change-transform"
-                  />
+                  <picture>
+                    <source srcSet={project.image?.replace(/\.(png|jpg|jpeg)$/, '.webp')} type="image/webp" />
+                    <img
+                      src={project.image}
+                      alt={project.title}
+                      loading="lazy"
+                      width={800}
+                      height={600}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 will-change-transform"
+                    />
+                  </picture>
 
                   {/* Search/Link Icon Overlay */}
                   <a href={project.project_url || "#"} target="_blank" rel="noopener noreferrer" className="absolute inset-0 z-20">

@@ -48,7 +48,7 @@ interface Notification {
 const LogoImage = () => {
 	return (
 		<img
-			src="/logo-new.png"
+			src="/logo-new.webp"
 			alt="MS DIGIMARK"
 			className="h-5 md:h-7 lg:h-8 w-auto object-contain"
 			decoding="async"

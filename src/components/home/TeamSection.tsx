@@ -294,14 +294,17 @@ export const TeamSection = ({ showHeader = true }: TeamSectionProps) => {
                     }}
                     className="team-slide-inner absolute inset-0 w-full h-full bg-gradient-to-b from-gray-900 to-black flex items-center justify-center"
                   >
-                    <img
-                      src={member.image}
-                      alt={member.name}
-                      className="w-full h-full object-contain object-center"
-                      draggable={false}
-                      loading="lazy"
-                      decoding="async"
-                    />
+                    <picture>
+                      <source srcSet={member.image.replace(/\.png$/, '.webp')} type="image/webp" />
+                      <img
+                        src={member.image}
+                        alt={member.name}
+                        className="w-full h-full object-contain object-center"
+                        draggable={false}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </picture>
                   </div>
                   {/* Content Overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex items-end">
@@ -337,14 +340,17 @@ export const TeamSection = ({ showHeader = true }: TeamSectionProps) => {
                     className={`team-nav-btn w-10 h-10 sm:w-14 sm:h-14 md:w-20 md:h-20 rounded-lg overflow-hidden border-2 border-transparent transition-all duration-500 hover:scale-105 flex-shrink-0 ${index === 0 ? 'is--current' : ''}`}
                     aria-label={`View ${member.name}`}
                   >
-                    <img
-                      src={member.image}
-                      alt={member.name}
-                      className="w-full h-full object-contain object-center"
-                      draggable={false}
-                      loading="lazy"
-                      decoding="async"
-                    />
+                    <picture>
+                      <source srcSet={member.image.replace(/\.png$/, '.webp')} type="image/webp" />
+                      <img
+                        src={member.image}
+                        alt={member.name}
+                        className="w-full h-full object-contain object-center"
+                        draggable={false}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </picture>
                   </button>
                 ))}
               </div>
