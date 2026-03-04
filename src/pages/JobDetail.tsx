@@ -130,7 +130,11 @@ export const JobDetail = () => {
             toast.success("Application submitted successfully!");
         } catch (error: any) {
             console.error("Error submitting application:", error);
-            toast.error(error.message || "Failed to submit application");
+            if (error?.message?.includes("bucket not found")) {
+                toast.error("Storage bucket 'resumes' not found. Please create it in your Careers Supabase project as a 'Public' bucket.");
+            } else {
+                toast.error(error.message || "Failed to submit application");
+            }
         } finally {
             setSubmitting(false);
         }

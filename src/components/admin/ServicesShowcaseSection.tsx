@@ -238,13 +238,13 @@ export const ServicesShowcaseSection = () => {
 
         setSaving(true);
         try {
-            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
             let iconUrl = form.icon_url;
 
             if (form.use_custom_icon && customIconFile) {
                 setUploading(true);
                 const fileExtension = customIconFile.name.split('.').pop();
                 const filePath = `public/${Date.now()}.${fileExtension}`;
+                const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
 
                 const { error: uploadError } = await client.storage
                     .from('showcase-images')
@@ -266,6 +266,7 @@ export const ServicesShowcaseSection = () => {
             };
 
             if (editingId) {
+                const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
                 const { error } = await client
                     .from("services_showcase")
                     .update(serviceData)
@@ -291,6 +292,7 @@ export const ServicesShowcaseSection = () => {
                     ? Math.max(...services.map(s => s.order_index))
                     : 0;
 
+                const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
                 const { error } = await client
                     .from("services_showcase")
                     .insert([{
@@ -317,7 +319,11 @@ export const ServicesShowcaseSection = () => {
             fetchServices();
         } catch (error: any) {
             console.error("Error saving service:", error);
-            toast.error(`Failed to save service: ${error.message}`);
+            if (error.message?.includes('Bucket not found')) {
+                toast.error("Storage Bucket 'showcase-images' not found in Services account. Please create it as per the Implementation Plan.");
+            } else {
+                toast.error(`Failed to save service: ${error.message}`);
+            }
         } finally {
             setSaving(false);
         }
@@ -415,8 +421,8 @@ export const ServicesShowcaseSection = () => {
         try {
             const currentService = services[currentIndex];
             const targetService = services[targetIndex];
-
             const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+
             // Swap order_index
             await Promise.all([
                 client

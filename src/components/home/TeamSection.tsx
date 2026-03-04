@@ -4,7 +4,8 @@ import gsap from "gsap";
 import CustomEase from "gsap/CustomEase";
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
 
 gsap.registerPlugin(CustomEase);
 CustomEase.create("slideshow-wipe", "0.625, 0.05, 0, 1");
@@ -27,6 +28,7 @@ export const TeamSection = ({ showHeader = true }: TeamSectionProps) => {
   const [current, setCurrent] = useState(0);
   const [animating, setAnimating] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const [isFullScreen, setIsFullScreen] = useState(false);
   const [initFailed, setInitFailed] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const slidesRef = useRef<(HTMLDivElement | null)[]>([]);
@@ -80,6 +82,8 @@ export const TeamSection = ({ showHeader = true }: TeamSectionProps) => {
   const animationDuration = 1.1; // slightly snappier
 
   useEffect(() => {
+    if (length === 0) return;
+
     slidesRef.current = new Array(length).fill(null);
     innerRef.current = new Array(length).fill(null);
     thumbsRef.current = new Array(length).fill(null);
@@ -93,8 +97,27 @@ export const TeamSection = ({ showHeader = true }: TeamSectionProps) => {
       innerRef.current = innerEls;
       thumbsRef.current = thumbEls;
 
-      if (slidesRef.current[0]) slidesRef.current[0].classList.add('is--current');
-      if (thumbsRef.current[0]) thumbsRef.current[0].classList.add('is--current');
+      // Reset classes for all slides
+      slidesRef.current.forEach((slide, idx) => {
+        if (slide) {
+          if (idx === current) {
+            slide.classList.add('is--current');
+          } else {
+            slide.classList.remove('is--current');
+          }
+        }
+      });
+
+      // Reset classes for all thumbnails
+      thumbsRef.current.forEach((thumb, idx) => {
+        if (thumb) {
+          if (idx === current) {
+            thumb.classList.add('is--current');
+          } else {
+            thumb.classList.remove('is--current');
+          }
+        }
+      });
     };
 
     init();
@@ -109,13 +132,21 @@ export const TeamSection = ({ showHeader = true }: TeamSectionProps) => {
 
     // Ensure consistent visibility for all team members
     slidesRef.current.forEach((slide) => {
-      gsap.set(slide, { opacity: 1, visibility: "visible" });
+      if (slide) gsap.set(slide, { opacity: slide.classList.contains('is--current') ? 1 : 0, visibility: "visible" });
     });
 
-    return () => {
-      // Cleanup logic
-    };
-  }, []);
+  }, [teamMembers, length, current]);
+
+  // Auto-advance logic (1.5 seconds)
+  useEffect(() => {
+    if (loading || teamMembers.length <= 1 || animating || isFullScreen) return;
+
+    const timer = setInterval(() => {
+      navigate(1);
+    }, 5000);
+
+    return () => clearInterval(timer);
+  }, [loading, teamMembers.length, current, animating, isFullScreen]);
 
   const navigate = (direction: number, targetIndex: number | null = null) => {
     if (animating) return;
@@ -200,16 +231,16 @@ export const TeamSection = ({ showHeader = true }: TeamSectionProps) => {
 
   return (
     <motion.section
-      className="py-24 bg-gradient-to-b from-background to-muted/30"
+      className={`${showHeader ? "py-24" : "py-0"} bg-gradient-to-b from-background to-muted/30`}
       ref={containerRef}
       initial={{ opacity: 0, y: 30, scale: 0.995 }}
       whileInView={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.9, ease: "easeOut" }}
       viewport={{ once: true }}
     >
-      <div className="container mx-auto px-4 mb-12">
-        {/* Section Header */}
-        {showHeader && (
+      {/* Section Header */}
+      {showHeader && (
+        <div className="container mx-auto px-4 mb-12">
           <motion.div
             initial={{ opacity: 0, y: 30, scale: 0.98 }}
             whileInView={{ opacity: 1, y: 0, scale: 1 }}
@@ -231,16 +262,16 @@ export const TeamSection = ({ showHeader = true }: TeamSectionProps) => {
               The creative strategists powering your digital success.
             </p>
           </motion.div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Loading State */}
       {loading ? (
-        <div className="relative w-full h-[450px] sm:h-[550px] md:h-[650px] lg:h-[750px] overflow-hidden rounded-2xl md:rounded-3xl bg-black flex items-center justify-center">
+        <div className="relative w-full h-[350px] sm:h-[450px] md:h-[550px] lg:h-[600px] overflow-hidden rounded-2xl md:rounded-3xl bg-black flex items-center justify-center">
           <Loader2 className="h-12 w-12 text-purple-500 animate-spin" />
         </div>
       ) : teamMembers.length === 0 ? (
-        <div className="relative w-full h-[450px] sm:h-[550px] md:h-[650px] lg:h-[750px] overflow-hidden rounded-2xl md:rounded-3xl bg-black flex items-center justify-center">
+        <div className="relative w-full h-[350px] sm:h-[450px] md:h-[550px] lg:h-[600px] overflow-hidden rounded-2xl md:rounded-3xl bg-black flex items-center justify-center">
           <div className="text-center text-slate-400">
             <p className="text-lg">No team members to display</p>
           </div>
@@ -248,7 +279,25 @@ export const TeamSection = ({ showHeader = true }: TeamSectionProps) => {
       ) : (
         <>
           {/* Carousel Container */}
-          <div className="relative w-full h-[450px] sm:h-[550px] md:h-[650px] lg:h-[750px] overflow-hidden rounded-2xl md:rounded-3xl bg-black">
+          <div className="relative w-full h-[500px] sm:h-[600px] md:h-[700px] lg:h-[750px] overflow-hidden rounded-[2.5rem] md:rounded-[3.5rem] bg-[#05030e] border border-white/5 shadow-2xl">
+            {/* Dynamic Ambient Background */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`bg-${teamMembers[current]?.id}`}
+                initial={{ opacity: 0, scale: 1.1 }}
+                animate={{ opacity: 0.4, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 1.2, ease: "easeOut" }}
+                className="absolute inset-0 z-0 pointer-events-none"
+              >
+                <div
+                  className="absolute inset-0 bg-center bg-cover blur-[80px] saturate-[1.8] scale-110"
+                  style={{ backgroundImage: `url(${teamMembers[current]?.image})` }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#05030e] via-transparent to-[#05030e]/50" />
+              </motion.div>
+            </AnimatePresence>
+
             {initFailed && (
               <div className="absolute inset-0 flex items-center justify-center z-30 bg-black/60 text-white">
                 <div className="text-center">
@@ -283,7 +332,7 @@ export const TeamSection = ({ showHeader = true }: TeamSectionProps) => {
                   ref={(el) => {
                     if (el) slidesRef.current[index] = el;
                   }}
-                  className={`team-slide absolute inset-0 opacity-0 pointer-events-none ${index === 0 ? 'is--current' : ''}`}
+                  className={`team-slide absolute inset-0 ${index === current ? 'opacity-100 pointer-events-auto is--current' : 'opacity-0 pointer-events-none'} transition-opacity duration-300`}
                   role="group"
                   aria-roledescription="slide"
                   aria-label={`${member.name} - ${member.title}`}
@@ -294,17 +343,21 @@ export const TeamSection = ({ showHeader = true }: TeamSectionProps) => {
                     }}
                     className="team-slide-inner absolute inset-0 w-full h-full bg-gradient-to-b from-gray-900 to-black flex items-center justify-center"
                   >
-                    <picture>
-                      <source srcSet={member.image.replace(/\.png$/, '.webp')} type="image/webp" />
-                      <img
-                        src={member.image}
-                        alt={member.name}
-                        className="w-full h-full object-contain object-center"
-                        draggable={false}
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </picture>
+                    {member.image && (
+                      <picture>
+                        {!member.image.startsWith('http') && (
+                          <source srcSet={member.image.replace(/\.(png|jpg|jpeg)$/, '.webp')} type="image/webp" />
+                        )}
+                        <img
+                          src={member.image}
+                          alt={member.name}
+                          className="w-full h-full object-contain object-center"
+                          draggable={false}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      </picture>
+                    )}
                   </div>
                   {/* Content Overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex items-end">
@@ -328,8 +381,8 @@ export const TeamSection = ({ showHeader = true }: TeamSectionProps) => {
             </div>
 
             {/* Navigation Thumbnails */}
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} viewport={{ once: true }} className="absolute bottom-3 sm:bottom-6 left-1/2 transform -translate-x-1/2 z-20 w-full px-2 sm:px-0">
-              <div className="flex gap-2 sm:gap-3 bg-black/40 backdrop-blur-md rounded-full p-2 sm:p-3 justify-center">
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} viewport={{ once: true }} className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-30 w-full px-4">
+              <div className="flex gap-4 bg-black/40 backdrop-blur-2xl rounded-[2rem] p-4 justify-center border border-white/10 w-fit mx-auto shadow-2xl">
                 {teamMembers.map((member, index) => (
                   <button
                     key={member.id}
@@ -337,49 +390,39 @@ export const TeamSection = ({ showHeader = true }: TeamSectionProps) => {
                       if (el) thumbsRef.current[index] = el;
                     }}
                     onClick={() => navigate(current < index ? 1 : -1, index)}
-                    className={`team-nav-btn w-10 h-10 sm:w-14 sm:h-14 md:w-20 md:h-20 rounded-lg overflow-hidden border-2 border-transparent transition-all duration-500 hover:scale-105 flex-shrink-0 ${index === 0 ? 'is--current' : ''}`}
+                    className={`team-nav-btn relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 transition-all duration-500 hover:scale-110 flex-shrink-0 ${index === current ? 'border-purple-500 ring-4 ring-purple-500/20' : 'border-transparent opacity-60 hover:opacity-100'}`}
                     aria-label={`View ${member.name}`}
                   >
-                    <picture>
-                      <source srcSet={member.image.replace(/\.png$/, '.webp')} type="image/webp" />
-                      <img
-                        src={member.image}
-                        alt={member.name}
-                        className="w-full h-full object-contain object-center"
-                        draggable={false}
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </picture>
+                    {member.image && (
+                      <picture>
+                        {!member.image.startsWith('http') && (
+                          <source srcSet={member.image.replace(/\.(png|jpg|jpeg)$/, '.webp')} type="image/webp" />
+                        )}
+                        <img
+                          src={member.image}
+                          alt={member.name}
+                          className={`w-full h-full object-cover transition-all duration-500 ${index === current ? 'grayscale-0' : 'grayscale group-hover:grayscale-0'}`}
+                          draggable={false}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      </picture>
+                    )}
                   </button>
                 ))}
               </div>
             </motion.div>
 
             {/* Side Navigation Buttons */}
-            <motion.button onClick={() => navigate(-1)} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ duration: 0.6 }} className="absolute left-2 sm:left-4 md:left-8 top-1/2 transform -translate-y-1/2 z-10 group hidden sm:flex" aria-label="Previous member">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110">
-                <svg
-                  className="w-5 h-5 sm:w-6 sm:h-6 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
+            <motion.button onClick={() => navigate(-1)} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ duration: 0.6 }} className="absolute left-4 md:left-12 top-1/2 transform -translate-y-1/2 z-40 group hidden md:flex" aria-label="Previous member">
+              <div className="w-16 h-16 bg-white/5 hover:bg-white/10 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:border-white/20">
+                <ArrowLeft className="h-6 w-6 text-white" />
               </div>
             </motion.button>
 
-            <motion.button onClick={() => navigate(1)} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ duration: 0.6 }} className="absolute right-2 sm:right-4 md:right-8 top-1/2 transform -translate-y-1/2 z-10 group hidden sm:flex" aria-label="Next member">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110">
-                <svg
-                  className="w-5 h-5 sm:w-6 sm:h-6 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+            <motion.button onClick={() => navigate(1)} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ duration: 0.6 }} className="absolute right-4 md:right-12 top-1/2 transform -translate-y-1/2 z-40 group hidden md:flex" aria-label="Next member">
+              <div className="w-16 h-16 bg-white/5 hover:bg-white/10 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:border-white/20">
+                <ArrowRight className="h-6 w-6 text-white" />
               </div>
             </motion.button>
           </div>
@@ -392,20 +435,41 @@ export const TeamSection = ({ showHeader = true }: TeamSectionProps) => {
             </p>
           </div>
 
-          {/* Member Details Dialog */}
-          <Dialog open={!!selectedMember} onOpenChange={(open) => !open && setSelectedMember(null)}>
-            <DialogContent>
+          {/* Member Details / Full Screen QR Dialog */}
+          <Dialog open={!!selectedMember} onOpenChange={(open) => {
+            if (!open) {
+              setSelectedMember(null);
+              setIsFullScreen(false);
+            }
+          }}>
+            <DialogContent className={isFullScreen ? "max-w-[95vw] h-[95vh] p-0 overflow-hidden bg-black/95 border-none" : "max-w-3xl"}>
               {selectedMember && (
-                <div className="grid gap-4 md:grid-cols-2">
-                  <img src={selectedMember.image} alt={selectedMember.name} className="w-full h-64 object-cover rounded-md" loading="lazy" decoding="async" />
-                  <div>
-                    <DialogTitle>{selectedMember.name}</DialogTitle>
-                    <DialogDescription>
-                      <p className="text-primary font-semibold">{selectedMember.title}</p>
-                      <p className="mt-4 text-muted-foreground">{selectedMember.description}</p>
-                    </DialogDescription>
+                isFullScreen ? (
+                  <div className="relative w-full h-full flex items-center justify-center p-4">
+                    <img
+                      src={selectedMember.image}
+                      alt={selectedMember.name}
+                      className="max-w-full max-h-full object-contain drop-shadow-2xl"
+                    />
+                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/60 text-sm bg-black/40 backdrop-blur-md px-6 py-2 rounded-full border border-white/10">
+                      Full view with QR Code enabled
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="grid gap-6 md:grid-cols-2 p-6">
+                    <div className="relative group">
+                      <div className="absolute inset-0 bg-purple-500/20 blur-2xl group-hover:opacity-100 transition-opacity" />
+                      <img src={selectedMember.image} alt={selectedMember.name} className="w-full h-80 object-contain rounded-2xl relative z-10" loading="lazy" decoding="async" />
+                    </div>
+                    <div className="flex flex-col justify-center">
+                      <DialogTitle className="text-3xl font-bold mb-2">{selectedMember.name}</DialogTitle>
+                      <DialogDescription className="text-lg">
+                        <span className="text-purple-400 font-semibold block mb-4">{selectedMember.title}</span>
+                        <p className="text-slate-300 leading-relaxed">{selectedMember.description}</p>
+                      </DialogDescription>
+                    </div>
+                  </div>
+                )
               )}
             </DialogContent>
           </Dialog>

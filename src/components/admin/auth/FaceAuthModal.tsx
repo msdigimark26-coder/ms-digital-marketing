@@ -254,6 +254,9 @@ export const FaceAuthModal: React.FC<FaceAuthModalProps> = ({
                 publicUrl = data.publicUrl;
             } else {
                 console.error("Log image upload failed (Storage Error):", uploadError);
+                if (uploadError?.message?.includes('Bucket not found')) {
+                    toast.error("Storage Bucket 'admin_logs' not found in Main account. Please create it as per the Implementation Plan.");
+                }
                 // FALLBACK: Store the base64 string directly so evidence is never lost.
                 // This ensures "No img" does not happen even if Storage is down/blocked.
                 publicUrl = base64Image;

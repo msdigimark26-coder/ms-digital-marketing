@@ -139,8 +139,8 @@ export const PortfolioSection = () => {
     const fetchProjects = useCallback(async (showLoading = true) => {
         if (showLoading) setLoading(true);
         try {
-            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
-            const { data, error } = await client
+            // Internal Project Tracker resides in Account 1 (Main)
+            const { data, error } = await supabase
                 .from("projects")
                 .select("*")
                 .order("created_at", { ascending: false });
@@ -162,8 +162,7 @@ export const PortfolioSection = () => {
         e.preventDefault();
         try {
             if (editingId) {
-                const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
-                const { error } = await client
+                const { error } = await supabase
                     .from("projects")
                     .update({ ...form, updated_at: new Date().toISOString() })
                     .eq("id", editingId);
@@ -182,8 +181,7 @@ export const PortfolioSection = () => {
 
                 toast.success("Project updated successfully");
             } else {
-                const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
-                const { error } = await client
+                const { error } = await supabase
                     .from("projects")
                     .insert([form]);
                 if (error) throw error;
@@ -224,8 +222,7 @@ export const PortfolioSection = () => {
         if (!confirm("Are you sure you want to remove this project?")) return;
         try {
             setProjects(prev => prev.filter(p => p.id !== id));
-            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
-            const { error } = await client.from("projects").delete().eq("id", id);
+            const { error } = await supabase.from("projects").delete().eq("id", id);
             if (error) throw error;
 
             // Log deletion

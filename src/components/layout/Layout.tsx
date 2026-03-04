@@ -3,12 +3,15 @@ import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { ChatWidgets } from "@/components/chat/ChatWidgets";
 import { MarqueeSection } from "@/components/home/MarqueeSection";
+import { useContentProtection } from "@/hooks/useContentProtection";
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 export const Layout = ({ children }: LayoutProps) => {
+  useContentProtection();
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />

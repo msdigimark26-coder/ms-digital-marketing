@@ -207,8 +207,9 @@ export const ServicesSection = () => {
     fetchServices();
 
     // Set up real-time subscription for live updates
-    if (isSupabaseConfigured) {
-      const channel = supabase
+    if (isSupabaseConfigured || isServicesSupabaseConfigured) {
+      const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+      const channel = client
         .channel('services_showcase_changes')
         .on(
           'postgres_changes',
@@ -227,7 +228,7 @@ export const ServicesSection = () => {
 
       // Cleanup subscription on unmount
       return () => {
-        supabase.removeChannel(channel);
+        client.removeChannel(channel);
       };
     }
   }, []);

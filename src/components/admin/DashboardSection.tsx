@@ -151,9 +151,8 @@ export const DashboardSection = () => {
 
             if (leadsData) setLeads(leadsData || []);
 
-            // 3. Fetch Active Projects (Limit 4)
-            const projectsClient = isServicesSupabaseConfigured ? servicesSupabase : supabase;
-            const { data: projectsData } = await projectsClient
+            // 3. Fetch Active Projects (Limit 4) - From Account 1 (Main)
+            const { data: projectsData } = await supabase
                 .from('projects')
                 .select('*')
                 .order('created_at', { ascending: false })

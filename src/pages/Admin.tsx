@@ -112,8 +112,13 @@ const Admin = () => {
                 setConnectionStatus('connected');
             } catch (err: any) {
                 console.error("DB Connection Check Failed:", err);
+
+                // Detailed error for debugging
+                const errorDetails = err.message || "Unknown error";
+                const isAuthError = err.code === 'PGRST301' || err.status === 401;
+
                 setConnectionStatus('error');
-                setConnectionError(err.message || "Unknown error connecting to Supabase");
+                setConnectionError(isAuthError ? "Auth/API Key Error. Check Supabase settings." : errorDetails);
             }
         };
 
@@ -122,25 +127,44 @@ const Admin = () => {
 
     const playAlertSound = () => {
         try {
-            const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
 
-            const beep = (startTime: number, freq: number, type: 'square' | 'sawtooth' = 'square') => {
+            // Resume context if suspended (browser security)
+            if (ctx.state === 'suspended') {
+                ctx.resume();
+            }
+
+            const beep = (startTime: number, freq: number, type: 'square' | 'sawtooth' | 'sine' = 'square', volume = 0.3) => {
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
                 osc.type = type;
                 osc.frequency.setValueAtTime(freq, startTime);
-                gain.gain.setValueAtTime(0.1, startTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.15);
+
+                gain.gain.setValueAtTime(0, startTime);
+                gain.gain.linearRampToValueAtTime(volume, startTime + 0.01);
+                gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.5);
+
                 osc.connect(gain);
                 gain.connect(ctx.destination);
                 osc.start(startTime);
-                osc.stop(startTime + 0.15);
+                osc.stop(startTime + 0.5);
             };
 
-            // Urgent double high-pitch beep
-            beep(ctx.currentTime, 880, 'sawtooth');
-            beep(ctx.currentTime + 0.2, 880, 'sawtooth');
-            beep(ctx.currentTime + 0.4, 660, 'square');
+            // High-visibility "Digital Alert" sequence
+            const now = ctx.currentTime;
+            beep(now, 880, 'sawtooth', 0.4);
+            beep(now + 0.1, 1100, 'sawtooth', 0.3);
+            beep(now + 0.2, 1320, 'square', 0.2);
+
+            // Sub-layer for depth
+            beep(now, 220, 'sine', 0.5);
+
+            // Browser vibration if supported
+            if (navigator.vibrate) {
+                navigator.vibrate([100, 50, 100]);
+            }
         } catch (e) {
             console.error("Audio playback error:", e);
         }
@@ -150,7 +174,7 @@ const Admin = () => {
         // Initial Intro Timer
         const timer = setTimeout(() => {
             setShowIntro(false);
-        }, 1800);
+        }, 5000);
 
         const checkSession = async () => {
             const session = sessionStorage.getItem("ms-admin-session");
@@ -353,7 +377,8 @@ const Admin = () => {
     useEffect(() => {
         if (!isLoggedIn) return;
 
-        const channel = supabase
+        const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+        const channel = client
             .channel('realtime_leads')
             .on(
                 'postgres_changes',
@@ -381,7 +406,7 @@ const Admin = () => {
             .subscribe();
 
         return () => {
-            supabase.removeChannel(channel);
+            client.removeChannel(channel);
         };
     }, [isLoggedIn]);
 
@@ -424,9 +449,14 @@ const Admin = () => {
                     }
 
                 } else {
-                    // NORMAL ADMIN - REQUIRE FACE AUTH
+                    // NORMAL ADMIN - CHECK BIOMETRIC FLAG
                     setPendingUser(data);
-                    setShowFaceAuth(true);
+                    if (data.biometric_enabled) {
+                        setShowFaceAuth(true); // Force face scan if enabled
+                    } else {
+                        // Skip face scan, go straight to ID Scanner
+                        setShowIDScanner(true);
+                    }
                 }
             } else {
                 toast.error("Invalid credentials. Please contact main admin.");

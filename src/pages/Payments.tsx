@@ -169,7 +169,11 @@ const Payments = () => {
             setStep(4); // Success step
         } catch (err: any) {
             console.error("Evidence Submission Error:", err);
-            toast.error(err.message || "Failed to submit payment evidence");
+            if (err?.message?.includes("bucket not found")) {
+                toast.error("Storage bucket 'payment_evidence' not found. Please create it in your Careers Supabase project as a 'Public' bucket.");
+            } else {
+                toast.error(err.message || "Failed to submit payment evidence");
+            }
         } finally {
             setIsSubmittingEvidence(false);
         }

@@ -106,7 +106,11 @@ export const ReelsSection = () => {
             toast.success("Video uploaded successfully");
         } catch (error: any) {
             console.error("Upload error:", error);
-            toast.error("Upload failed: " + error.message);
+            if (error.message?.includes('Bucket not found')) {
+                toast.error("Storage Bucket 'reels' not found in Reels Dedicated account. Please create it as per the Implementation Plan.");
+            } else {
+                toast.error("Upload failed: " + error.message);
+            }
         } finally {
             setUploading(false);
         }

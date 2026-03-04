@@ -108,7 +108,11 @@ export const NotificationsSection = () => {
             toast.success("Image uploaded successfully");
         } catch (error: any) {
             console.error("Upload error:", error);
-            toast.error("Upload failed: " + error.message);
+            if (error.message?.includes('Bucket not found')) {
+                toast.error("Storage Bucket 'notification-images' not found. Please create it in your Supabase Dashboard as per the Implementation Plan.");
+            } else {
+                toast.error("Upload failed: " + error.message);
+            }
         } finally {
             setUploading(false);
         }

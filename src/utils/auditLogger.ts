@@ -19,7 +19,7 @@ export interface AuditLogParams {
  */
 export const logActivity = async (params: AuditLogParams) => {
     try {
-        const client = isReelsSupabaseConfigured ? reelsSupabase : supabase;
+        const client = supabase;
 
         const entry = {
             admin_name: params.adminName,

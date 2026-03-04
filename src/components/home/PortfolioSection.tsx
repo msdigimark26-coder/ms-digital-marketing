@@ -147,7 +147,9 @@ export const PortfolioSection = () => {
                   {/* Image Hover Zoom */}
                   <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors duration-500 z-10" />
                   <picture>
-                    <source srcSet={project.image?.replace(/\.(png|jpg|jpeg)$/, '.webp')} type="image/webp" />
+                    {project.image && !project.image.startsWith('http') && (
+                      <source srcSet={project.image.replace(/\.(png|jpg|jpeg)$/, '.webp')} type="image/webp" />
+                    )}
                     <img
                       src={project.image}
                       alt={project.title}

@@ -30,8 +30,7 @@ interface Message {
     } | null;
 }
 
-// iPhone-style "Tri-tone" or similar pleasant notification
-const NOTIFICATION_SOUND_URL = "https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3";
+
 
 interface Theme {
     name: string;
@@ -434,14 +433,10 @@ export const MessagesSection = () => {
     const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const audioRef = useRef<HTMLAudioElement | null>(null);
+
 
     useEffect(() => {
-        // Init Audio
-        audioRef.current = new Audio(NOTIFICATION_SOUND_URL);
-        if (audioRef.current) {
-            audioRef.current.volume = 0.5;
-        }
+
 
         const session = sessionStorage.getItem("ms-admin-session");
         if (session) {
@@ -484,9 +479,40 @@ export const MessagesSection = () => {
     };
 
     const playSound = () => {
-        if (audioRef.current) {
-            audioRef.current.currentTime = 0;
-            audioRef.current.play().catch(e => console.log("Audio play failed", e));
+        try {
+            const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+
+            if (ctx.state === 'suspended') {
+                ctx.resume();
+            }
+
+            const now = ctx.currentTime;
+
+            const beep = (startTime: number, freq: number, type: 'sine' | 'square' | 'sawtooth' = 'sine', volume = 0.3) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, startTime);
+
+                gain.gain.setValueAtTime(0, startTime);
+                gain.gain.linearRampToValueAtTime(volume, startTime + 0.01);
+                gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.4);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(startTime);
+                osc.stop(startTime + 0.4);
+            };
+
+            // Pleasant "Message Received" Tri-tone
+            beep(now, 523.25, 'sine', 0.4); // C5
+            beep(now + 0.15, 659.25, 'sine', 0.4); // E5
+            beep(now + 0.3, 783.99, 'sine', 0.4); // G5
+
+        } catch (err) {
+            console.error("Chat sound failed", err);
         }
     };
 
@@ -622,9 +648,13 @@ export const MessagesSection = () => {
                 });
 
             if (error) throw error;
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error sending file:", error);
-            toast.error("Failed to upload recording");
+            if (error?.message?.includes("bucket not found")) {
+                toast.error("Storage bucket 'chat_attachments' not found. Please create it in your Main Supabase project as a 'Public' bucket.");
+            } else {
+                toast.error("Failed to upload recording");
+            }
         } finally {
             setIsLoading(false);
         }
@@ -688,9 +718,13 @@ export const MessagesSection = () => {
             setAttachment(null);
             if (fileInputRef.current) fileInputRef.current.value = "";
             fetchMessages();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error sending message:", error);
-            toast.error("Failed to send message");
+            if (error?.message?.includes("bucket not found")) {
+                toast.error("Storage bucket 'chat_attachments' not found. Please create it in your Main Supabase project as a 'Public' bucket.");
+            } else {
+                toast.error("Failed to send message");
+            }
         } finally {
             setIsLoading(false);
         }

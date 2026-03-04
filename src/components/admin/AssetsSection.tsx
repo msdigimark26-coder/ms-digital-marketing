@@ -32,18 +32,8 @@ const AssetCard = React.memo(({
         viewport={{ once: true }}
         className="glass-card group overflow-hidden flex flex-col h-full hover:border-primary/50 transition-all duration-300"
     >
-        <div className="relative h-40 bg-black/40 border-b border-white/5 overflow-hidden">
-            {asset.cover_image_url ? (
-                <img
-                    src={asset.cover_image_url}
-                    alt={asset.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-            ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-white/5 to-transparent">
-                    <ImageIcon className="h-10 w-10 text-white/10" />
-                </div>
-            )}
+        <div className="relative h-20 bg-black/40 border-b border-white/5 overflow-hidden flex items-center justify-center">
+            <Package className="h-8 w-8 text-primary/20" />
             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                     onClick={() => onEdit(asset)}
@@ -113,8 +103,15 @@ export const AssetsSection = () => {
             const { data } = supabase.storage.from('asset_covers').getPublicUrl(fileName);
             setForm(prev => ({ ...prev, cover_image_url: data.publicUrl }));
             toast.success("Cover uploaded");
-        } catch (error: any) { toast.error(error.message); }
-        finally { setUploading(false); }
+        } catch (error: any) {
+            if (error.message?.includes('Bucket not found')) {
+                toast.error("Storage Bucket 'asset_covers' not found. Please create it in your Supabase Dashboard as per the Implementation Plan.");
+            } else {
+                toast.error(error.message);
+            }
+        } finally {
+            setUploading(false);
+        }
     };
 
     const handleSave = async (e: React.FormEvent) => {
@@ -205,19 +202,11 @@ export const AssetsSection = () => {
                 {isAdding && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
                         <form onSubmit={handleSave} className="glass-card p-6 border-primary/20 bg-primary/5 space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 gap-6">
                                 <div className="space-y-4">
                                     <Input placeholder="Asset Title *" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required />
                                     <Input placeholder="Asset Link *" value={form.link} onChange={e => setForm({ ...form, link: e.target.value })} required />
                                     <Textarea placeholder="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
-                                </div>
-                                <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-white/10 rounded-xl p-8 hover:bg-white/5 cursor-pointer min-h-[200px] flex items-center justify-center relative overflow-hidden group">
-                                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
-                                    {form.cover_image_url ? (
-                                        <img src={form.cover_image_url} alt="Cover" className="absolute inset-0 w-full h-full object-cover opacity-50" />
-                                    ) : (
-                                        <div className="text-center">{uploading ? <Loader2 className="animate-spin mb-2 mx-auto" /> : <Upload className="mb-2 mx-auto" />}<span>Upload Cover</span></div>
-                                    )}
                                 </div>
                             </div>
                             <div className="flex justify-end gap-3 pt-4 border-t border-white/5">

@@ -131,7 +131,11 @@ export const PortfolioFrontSection = () => {
             return publicUrl;
         } catch (error: any) {
             console.error('Error uploading image:', error);
-            toast.error(`Upload failed: ${error.message}`);
+            if (error.message?.includes('Bucket not found')) {
+                toast.error("Storage Bucket 'portfolio-images' not found in Services account. Please create it as per the Implementation Plan.");
+            } else {
+                toast.error(`Upload failed: ${error.message}`);
+            }
             return null;
         } finally {
             setUploading(false);

@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://xlyzoqmifdbmrdatfbcd.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_oeCS-lbr6bi2BA_1ONoY4A_OFWz98ql';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_oeCS-lbr6bi2BA_1ONoY4A_OFWz98ql';
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
@@ -63,7 +63,7 @@ const createMockClient = () => {
   };
 };
 
-export const isConfigured = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY && SUPABASE_URL !== 'https://placeholder.supabase.co');
+export const isConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY && SUPABASE_URL !== 'https://placeholder.supabase.co');
 
 if (!isConfigured) {
   console.warn("⚠️ SUPABASE NOT CONFIGURED: Using mock client. Backend features like Login and Notifications won't work until you set your environment variables on Netlify.");
@@ -72,7 +72,7 @@ if (!isConfigured) {
 let client;
 try {
   client = isConfigured
-    ? createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    ? createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
         storage: localStorage,
         persistSession: true,

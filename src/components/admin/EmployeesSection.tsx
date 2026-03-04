@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -138,6 +138,7 @@ EmployeeCard.displayName = "EmployeeCard";
 export const EmployeesSection = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);
+    const sectionRef = useRef<HTMLDivElement>(null);
     const [showInactive, setShowInactive] = useState(true);
     const [actionId, setActionId] = useState<string | null>(null);
     const [isAdding, setIsAdding] = useState(false);
@@ -190,7 +191,10 @@ export const EmployeesSection = () => {
 
             const { error: uploadError } = await supabase.storage
                 .from('employee-images')
-                .upload(filePath, file);
+                .upload(filePath, file, {
+                    cacheControl: '3600',
+                    upsert: true
+                });
 
             if (uploadError) throw uploadError;
 
@@ -201,7 +205,11 @@ export const EmployeesSection = () => {
             setForm(prev => ({ ...prev, image_url: publicUrl }));
             toast.success("Profile image uploaded successfully");
         } catch (error: any) {
-            toast.error("Error uploading image: " + error.message);
+            if (error.message?.includes('Bucket not found')) {
+                toast.error("Storage Bucket 'employee-images' not found. Please create it in your Supabase Dashboard as per the Implementation Plan.");
+            } else {
+                toast.error("Error uploading image: " + error.message);
+            }
         } finally {
             setUploading(false);
         }
@@ -302,6 +310,7 @@ export const EmployeesSection = () => {
         });
         setEditingId(e.id);
         setIsAdding(true);
+        sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, []);
 
     const handleDelete = useCallback(async (id: string) => {
@@ -405,7 +414,7 @@ export const EmployeesSection = () => {
     const filteredEmployees = employees.filter(e => showInactive || e.is_active);
 
     return (
-        <div className="space-y-8 animate-fade-in">
+        <div ref={sectionRef} className="space-y-8 animate-fade-in">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-white tracking-tight">Team Members</h2>

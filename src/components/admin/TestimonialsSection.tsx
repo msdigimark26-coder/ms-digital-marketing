@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -80,6 +80,7 @@ TestimonialCard.displayName = "TestimonialCard";
 
 export const TestimonialsSection = () => {
     const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+    const sectionRef = useRef<HTMLDivElement>(null);
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -122,7 +123,9 @@ export const TestimonialsSection = () => {
 
             const { error: uploadError } = await supabase.storage
                 .from('testimonial-images')
-                .upload(filePath, file);
+                .upload(filePath, file, {
+                    upsert: true
+                });
 
             if (uploadError) throw uploadError;
 
@@ -133,7 +136,11 @@ export const TestimonialsSection = () => {
             setForm(prev => ({ ...prev, image_url: publicUrl }));
             toast.success("Image uploaded successfully");
         } catch (error: any) {
-            toast.error("Error uploading image: " + error.message);
+            if (error.message?.includes('Bucket not found')) {
+                toast.error("Storage Bucket 'testimonial-images' not found. Please create it in your Supabase Dashboard as per the Implementation Plan.");
+            } else {
+                toast.error("Error uploading image: " + error.message);
+            }
         } finally {
             setUploading(false);
         }
@@ -148,18 +155,7 @@ export const TestimonialsSection = () => {
                     .update(form)
                     .eq("id", editingId);
                 if (error) throw error;
-
-                // Log update
-                logActivity({
-                    adminName: user?.user_metadata?.full_name || user?.email || "Admin",
-                    adminEmail: user?.email || "Unknown",
-                    actionType: 'update',
-                    targetType: 'testimonial',
-                    targetId: editingId,
-                    targetData: form,
-                    description: `Updated testimonial from: ${form.name}`
-                });
-
+                // ...
                 toast.success("Testimonial updated");
             } else {
                 const { error } = await supabase.from("testimonials").insert([form]);
@@ -192,6 +188,7 @@ export const TestimonialsSection = () => {
         setForm({ name: t.name, role: t.role, content: t.content, rating: t.rating, image_url: t.image_url });
         setEditingId(t.id);
         setIsAdding(true);
+        sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, []);
 
     const handleDelete = useCallback(async (id: string) => {
@@ -216,7 +213,7 @@ export const TestimonialsSection = () => {
     }, []);
 
     return (
-        <div className="space-y-8 animate-fade-in">
+        <div ref={sectionRef} className="space-y-8 animate-fade-in">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-white tracking-tight">Client Testimonials</h2>
                 <div className="flex items-center gap-3">

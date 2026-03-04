@@ -86,7 +86,7 @@ export const Preloader = ({ logo = "/preload-logo.png" }: { logo?: string }) => 
         const timer = setTimeout(() => {
             setLoading(false);
             setTimeout(() => setShow(false), 800);
-        }, 1300);
+        }, 1500);
         return () => clearTimeout(timer);
     }, []);
 

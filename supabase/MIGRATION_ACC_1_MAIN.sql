@@ -161,6 +161,57 @@ CREATE TABLE IF NOT EXISTS public.admin_messages (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS public.admin_activity_logs (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    admin_name TEXT,
+    admin_email TEXT,
+    action_type TEXT,
+    target_type TEXT,
+    target_id TEXT,
+    target_data JSONB,
+    description TEXT,
+    ip_address TEXT,
+    user_agent TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- 9. CONSOLIDATED TABLES (LEADS, BOOKINGS, SERVICES)
+CREATE TABLE IF NOT EXISTS public.leads (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    email TEXT,
+    phone TEXT,
+    status TEXT DEFAULT 'new',
+    source TEXT DEFAULT 'direct',
+    message TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.bookings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    email TEXT,
+    phone TEXT,
+    booking_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    status TEXT DEFAULT 'pending',
+    notes TEXT,
+    service_id TEXT,
+    service_name TEXT,
+    budget TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.services_showcase (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    description TEXT,
+    icon_url TEXT,
+    features JSONB DEFAULT '[]',
+    is_active BOOLEAN DEFAULT true,
+    order_index INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
 -- Enable RLS for ALL tables
 ALTER TABLE public.portal_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -175,6 +226,10 @@ ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_login_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_activity_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.services_showcase ENABLE ROW LEVEL SECURITY;
 
 -- Policies for Admin Access (Global)
 CREATE POLICY "Allow public select on portal_users" ON public.portal_users FOR SELECT USING (true);
@@ -190,6 +245,7 @@ CREATE POLICY "Allow public select on notifications" ON public.notifications FOR
 CREATE POLICY "Allow public select on testimonials" ON public.testimonials FOR SELECT USING (true);
 CREATE POLICY "Allow public select on assets" ON public.assets FOR SELECT USING (true);
 CREATE POLICY "Allow public select on employees" ON public.employees FOR SELECT USING (true);
+CREATE POLICY "Allow public select on services_showcase" ON public.services_showcase FOR SELECT USING (true);
 
 -- Client Portal Policies
 CREATE POLICY "Users can view own projects" ON public.projects FOR SELECT USING (auth.uid() = user_id);
@@ -207,3 +263,11 @@ CREATE POLICY "Admin All Invoices" ON public.invoices FOR ALL USING (true);
 CREATE POLICY "Admin All Payments" ON public.payments FOR ALL USING (true);
 CREATE POLICY "Admin All Login Logs" ON public.admin_login_logs FOR ALL USING (true);
 CREATE POLICY "Admin All Messages" ON public.admin_messages FOR ALL USING (true);
+CREATE POLICY "Admin All Activity Logs" ON public.admin_activity_logs FOR ALL USING (true);
+CREATE POLICY "Admin All Leads" ON public.leads FOR ALL USING (true);
+CREATE POLICY "Admin All Bookings" ON public.bookings FOR ALL USING (true);
+CREATE POLICY "Admin All Showcase" ON public.services_showcase FOR ALL USING (true);
+
+-- Public Input Policies
+CREATE POLICY "Allow public insert leads" ON public.leads FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public insert bookings" ON public.bookings FOR INSERT WITH CHECK (true);

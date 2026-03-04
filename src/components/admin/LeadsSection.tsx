@@ -203,7 +203,8 @@ export const LeadsSection = () => {
         e.preventDefault();
         setSubmitting(true);
         try {
-            const { error } = await supabase.from("leads").insert([form]);
+            const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
+            const { error } = await client.from("leads").insert([form]);
             if (error) throw error;
 
             // Log creation

@@ -216,7 +216,11 @@ export const BlogEditorDialog = ({ post, isOpen, onClose, onSuccess }: BlogEdito
             onSuccess();
         } catch (error: any) {
             console.error("Save error:", error);
-            toast.error("Failed to save article: " + error.message);
+            if (error.message?.includes('Bucket not found')) {
+                toast.error("Storage Bucket 'blog_images' not found in Main account. Please create it as per the Implementation Plan.");
+            } else {
+                toast.error("Failed to save article: " + error.message);
+            }
         } finally {
             setIsLoading(false);
         }

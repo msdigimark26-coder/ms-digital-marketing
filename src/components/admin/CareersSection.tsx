@@ -198,6 +198,9 @@ export const CareersSection = () => {
 
                 if (storageError) {
                     console.error("Error deleting resume:", storageError);
+                    if (storageError.message?.includes("bucket not found")) {
+                        toast.error("Storage bucket 'resumes' not found in Careers project.");
+                    }
                 }
             }
 

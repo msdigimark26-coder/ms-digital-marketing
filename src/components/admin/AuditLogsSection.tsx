@@ -110,28 +110,24 @@ export const AuditLogsSection = () => {
             })
             .subscribe();
 
-        // Real-time updates for Activity Logs (from Reels Account)
-        if (isReelsSupabaseConfigured) {
-            reelsSupabase
-                .channel('activity-db-changes')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_activity_logs' }, () => {
-                    fetchActivityLogs();
-                })
-                .subscribe();
-        }
+        // Real-time updates for Activity Logs (Now consolidated in Main)
+        const activityChannel = supabase
+            .channel('activity-db-changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_activity_logs' }, () => {
+                fetchActivityLogs();
+            })
+            .subscribe();
 
         return () => {
             supabase.removeChannel(channel);
-            if (isReelsSupabaseConfigured) {
-                reelsSupabase.channel('activity-db-changes').unsubscribe();
-            }
+            supabase.removeChannel(activityChannel);
         };
     }, []);
 
     const fetchActivityLogs = async () => {
         try {
             setIsActivityLoading(true);
-            const client = isReelsSupabaseConfigured ? reelsSupabase : supabase;
+            const client = supabase;
             const { data, error } = await client
                 .from("admin_activity_logs")
                 .select("*")
@@ -267,7 +263,7 @@ export const AuditLogsSection = () => {
             "Are you sure you want to permanently delete this activity record? This action cannot be undone.",
             async () => {
                 try {
-                    const client = isReelsSupabaseConfigured ? reelsSupabase : supabase;
+                    const client = supabase;
                     const { error } = await client
                         .from('admin_activity_logs')
                         .delete()
@@ -294,7 +290,7 @@ export const AuditLogsSection = () => {
             `Are you sure you want to delete ${selectedActivityLogs.length} selected activity records? This action cannot be undone.`,
             async () => {
                 try {
-                    const client = isReelsSupabaseConfigured ? reelsSupabase : supabase;
+                    const client = supabase;
                     const { error } = await client
                         .from('admin_activity_logs')
                         .delete()
@@ -320,7 +316,7 @@ export const AuditLogsSection = () => {
             "Are you sure you want to delete ALL activity logs? This action is permanent and cannot be undone.",
             async () => {
                 try {
-                    const client = isReelsSupabaseConfigured ? reelsSupabase : supabase;
+                    const client = supabase;
                     // Delete all records - typically requires a filter in Supabase unless using a RPC or specific bypass
                     // For safety and compatibility with standard delete, we use a filter that matches all (like checking if id is not null)
                     const { error } = await client

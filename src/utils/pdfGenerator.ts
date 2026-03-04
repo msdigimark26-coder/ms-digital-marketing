@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format, formatDistance } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface LogEntry {
     id: string;
@@ -240,8 +241,11 @@ export const generateAuditLogPDF = async (logs: LogEntry[], onProgress: (msg: st
 
             if (uploadError) {
                 console.warn("Cloud upload failed (RLS probably), but the user will still get the local file.", uploadError);
+                if (uploadError.message?.includes('Bucket not found')) {
+                    toast.error("Cloud Vault Sync failed: 'admin_logs' bucket not found. Please refer to implementation plan.");
+                }
             }
-        } catch (uploadErr) {
+        } catch (uploadErr: any) {
             console.warn("Upload exception caught:", uploadErr);
         }
 

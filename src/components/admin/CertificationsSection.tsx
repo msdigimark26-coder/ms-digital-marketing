@@ -275,7 +275,11 @@ export const CertificationsManagementSection = () => {
             fetchData();
         } catch (err: any) {
             console.error(err);
-            toast.error(err.message || "Failed to save certification");
+            if (err.message?.includes('Bucket not found')) {
+                toast.error("Storage Bucket 'certifications' not found in Careers account. Please create it as per the Implementation Plan.");
+            } else {
+                toast.error(err.message || "Failed to save certification");
+            }
         } finally {
             setIsSubmitting(false);
         }
