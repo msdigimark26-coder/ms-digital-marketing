@@ -28,7 +28,8 @@ import {
     Video,
     IdCard,
     FileText,
-    Award
+    Award,
+    Handshake
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,6 +62,7 @@ import { isConfigured as isSupabaseConfigured } from "@/integrations/supabase/cl
 import { AlertCircle, Globe } from "lucide-react";
 import { Preloader } from "@/components/ui/Preloader";
 import { ClientNetworkManagementSection } from "@/components/admin/ClientNetworkManagement";
+import { CollaborationsManagementSection } from "@/components/admin/CollaborationsManagement";
 
 const Admin = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -671,6 +673,7 @@ const Admin = () => {
                 { id: "id-cards", label: "ID Cards", icon: IdCard },
                 { id: "certifications", label: "Certifications", icon: Award },
                 { id: "global-network", label: "Global Network", icon: Globe },
+                { id: "collaborations", label: "Collaborations", icon: Handshake },
                 { id: "audit", label: "Audit Logs", icon: Shield }
             ] : [])
         ];
@@ -1119,8 +1122,20 @@ const Admin = () => {
                                     </motion.div>
                                 )}
 
+                                {activeTab === "collaborations" && (
+                                    <motion.div
+                                        key="collaborations"
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -10 }}
+                                        transition={{ duration: 0.2 }}
+                                    >
+                                        <CollaborationsManagementSection />
+                                    </motion.div>
+                                )}
+
                                 {/* Fallback for other tabs until implemented */}
-                                {!["dashboard", "leads", "portfolio", "portfolio-front", "testimonials", "services", "services-showcase", "settings", "notifications", "bookings", "payments", "messages", "audit", "assets", "reels", "team", "id-cards", "careers", "blog", "certifications", "global-network"].includes(activeTab) && (
+                                {!["dashboard", "leads", "portfolio", "portfolio-front", "testimonials", "services", "services-showcase", "settings", "notifications", "bookings", "payments", "messages", "audit", "assets", "reels", "team", "id-cards", "careers", "blog", "certifications", "global-network", "collaborations"].includes(activeTab) && (
                                     <motion.div
                                         key="placeholder"
                                         initial={{ opacity: 0 }}

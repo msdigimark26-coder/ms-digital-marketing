@@ -11,6 +11,7 @@ const CTASection = lazy(() => import("@/components/home/CTASection").then(m => (
 const NotificationSection = lazy(() => import("@/components/home/NotificationSection").then(m => ({ default: m.NotificationSection })));
 const BlogPreviewSection = lazy(() => import("@/components/home/BlogPreviewSection").then(m => ({ default: m.BlogPreviewSection })));
 const ClientNetworkSection = lazy(() => import("@/components/home/ClientNetworkSection").then(m => ({ default: m.ClientNetworkSection })));
+const CollaborationsSection = lazy(() => import("@/components/home/CollaborationsSection").then(m => ({ default: m.CollaborationsSection })));
 const CertificationsSection = lazy(() => import("@/components/home/CertificationsSection").then(m => ({ default: m.CertificationsSection })));
 import { Button } from "@/components/ui/button";
 
@@ -37,6 +38,7 @@ const Index = () => {
         <WhyUsSection />
         <BlogPreviewSection />
         <ClientNetworkSection />
+        <CollaborationsSection />
         <CTASection />
         <NotificationSection />
       </Suspense>
