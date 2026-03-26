@@ -69,15 +69,22 @@ export const NotificationSection = () => {
         audioRef.current = new Audio("https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3");
         audioRef.current.volume = 0.5;
 
-        const channel = supabase
-            .channel('notifications_changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => {
-                loadNotifications();
-            })
-            .subscribe();
+        let channel: any = null;
+        try {
+            channel = supabase
+                .channel('notifications_changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => {
+                    loadNotifications();
+                })
+                .subscribe();
+        } catch (error) {
+            console.error("Realtime subscription failed for notification updates:", error);
+        }
 
         return () => {
-            supabase.removeChannel(channel);
+            if (channel) {
+                supabase.removeChannel(channel);
+            }
         };
     }, []);
 

@@ -119,16 +119,23 @@ export const Header = () => {
 
 		loadNotifications();
 
-		const channel = supabase
-			.channel('header_notifications')
-			.on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => {
-				loadNotifications();
-			})
-			.subscribe();
+		let channel: any = null;
+		try {
+			channel = supabase
+				.channel('header_notifications')
+				.on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => {
+					loadNotifications();
+				})
+				.subscribe();
+		} catch (error) {
+			console.error("Realtime subscription failed for header notifications:", error);
+		}
 
 		return () => {
 			window.removeEventListener("scroll", handleScroll);
-			supabase.removeChannel(channel);
+			if (channel) {
+				supabase.removeChannel(channel);
+			}
 		};
 	}, []);
 

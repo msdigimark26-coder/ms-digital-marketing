@@ -253,26 +253,33 @@ const Services = () => {
     // Set up real-time subscription for live updates
     if (isSupabaseConfigured || isServicesSupabaseConfigured) {
       const client = isServicesSupabaseConfigured ? servicesSupabase : supabase;
-      const channel = client
-        .channel('services_showcase_changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
-            schema: 'public',
-            table: 'services_showcase'
-          },
-          (payload) => {
-            console.log('Services changed:', payload);
-            // Refetch services when any change occurs
-            fetchServices();
-          }
-        )
-        .subscribe();
+      let channel: any = null;
+      try {
+        channel = client
+          .channel('services_showcase_changes')
+          .on(
+            'postgres_changes',
+            {
+              event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+              schema: 'public',
+              table: 'services_showcase'
+            },
+            (payload) => {
+              console.log('Services changed:', payload);
+              // Refetch services when any change occurs
+              fetchServices();
+            }
+          )
+          .subscribe();
+      } catch (error) {
+        console.error('Realtime subscription failed for services page:', error);
+      }
 
       // Cleanup subscription on unmount
       return () => {
-        client.removeChannel(channel);
+        if (channel) {
+          client.removeChannel(channel);
+        }
       };
     }
   }, []);

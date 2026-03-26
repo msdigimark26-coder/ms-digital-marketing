@@ -54,18 +54,25 @@ export const CertificationsSection = () => {
         fetchCertData();
 
         // 3. Real-time subscription
-        const channel = careersSupabase
-            .channel('certifications_changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'certifications' }, () => {
-                fetchCertData();
-            })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'site_sections' }, () => {
-                fetchCertData();
-            })
-            .subscribe();
+        let channel: any = null;
+        try {
+            channel = careersSupabase
+                .channel('certifications_changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'certifications' }, () => {
+                    fetchCertData();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'site_sections' }, () => {
+                    fetchCertData();
+                })
+                .subscribe();
+        } catch (error) {
+            console.error("Realtime subscription failed for certifications:", error);
+        }
 
         return () => {
-            careersSupabase.removeChannel(channel);
+            if (channel) {
+                careersSupabase.removeChannel(channel);
+            }
         };
     }, []);
 

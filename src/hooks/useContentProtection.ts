@@ -54,27 +54,34 @@ export const useContentProtection = () => {
         fetchSettings();
 
         // Real-time subscription for all site settings on Reels DB
-        const channel = reelsSupabase
-            .channel('site_settings_all_changes')
-            .on(
-                'postgres_changes',
-                {
-                    event: 'UPDATE',
-                    schema: 'public',
-                    table: 'site_settings'
-                },
-                (payload: any) => {
-                    const { key, value } = payload.new;
-                    setSettings(prev => ({
-                        ...prev,
-                        [key]: value === true || value === 'true'
-                    }));
-                }
-            )
-            .subscribe();
+        let channel: any = null;
+        try {
+            channel = reelsSupabase
+                .channel('site_settings_all_changes')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'site_settings'
+                    },
+                    (payload: any) => {
+                        const { key, value } = payload.new;
+                        setSettings(prev => ({
+                            ...prev,
+                            [key]: value === true || value === 'true'
+                        }));
+                    }
+                )
+                .subscribe();
+        } catch (error) {
+            console.error('Realtime subscription failed for site settings:', error);
+        }
 
         return () => {
-            reelsSupabase.removeChannel(channel);
+            if (channel) {
+                reelsSupabase.removeChannel(channel);
+            }
         };
     }, []);
 

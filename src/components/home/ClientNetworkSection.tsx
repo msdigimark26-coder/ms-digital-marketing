@@ -31,15 +31,22 @@ export const ClientNetworkSection = () => {
 
         fetchLocations();
 
-        const channel = reelsSupabase
-            .channel('client_network_changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'client_network_locations' }, () => {
-                fetchLocations();
-            })
-            .subscribe();
+        let channel: any = null;
+        try {
+            channel = reelsSupabase
+                .channel('client_network_changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'client_network_locations' }, () => {
+                    fetchLocations();
+                })
+                .subscribe();
+        } catch (error) {
+            console.error("Realtime subscription failed for client network:", error);
+        }
 
         return () => {
-            reelsSupabase.removeChannel(channel);
+            if (channel) {
+                reelsSupabase.removeChannel(channel);
+            }
         };
     }, []);
 
