@@ -287,6 +287,9 @@ export const BlogEditorDialog = ({ post, isOpen, onClose, onSuccess }: BlogEdito
                                     <Globe className="h-4 w-4" />
                                     <span>msdigimark.org/blog/</span>
                                     <input
+                                        id="post-slug"
+                                        name="slug"
+                                        aria-label="Slug"
                                         value={formData.slug}
                                         onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
                                         className="bg-transparent border-none outline-none text-white flex-1 font-medium"

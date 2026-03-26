@@ -1114,6 +1114,9 @@ export const MessagesSection = () => {
                     <input
                         type="file"
                         ref={fileInputRef}
+                        id="message-attachment"
+                        name="attachment"
+                        aria-label="Attach file"
                         className="hidden"
                         onChange={handleFileSelect}
                     />
@@ -1180,6 +1183,9 @@ export const MessagesSection = () => {
                                         </Button>
 
                                         <textarea
+                                            id="message-body"
+                                            name="message"
+                                            aria-label="Message"
                                             value={newMessage}
                                             onChange={(e) => setNewMessage(e.target.value)}
                                             onKeyDown={(e) => {
@@ -1236,4 +1242,3 @@ export const MessagesSection = () => {
         </div>
     );
 };
-

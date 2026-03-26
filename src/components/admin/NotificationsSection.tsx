@@ -349,6 +349,9 @@ export const NotificationsSection = () => {
                         <div className="space-y-2">
                             <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Message Content</label>
                             <textarea
+                                id="broadcast-message"
+                                name="message"
+                                aria-label="Broadcast message"
                                 required
                                 rows={4}
                                 placeholder="What would you like to tell your users?"
@@ -367,6 +370,9 @@ export const NotificationsSection = () => {
                                 <input
                                     type="file"
                                     ref={fileInputRef}
+                                    id="broadcast-image"
+                                    name="image"
+                                    aria-label="Upload broadcast image"
                                     className="hidden"
                                     accept="image/*"
                                     onChange={handleImageUpload}

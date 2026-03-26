@@ -481,6 +481,9 @@ export const EmployeesSection = () => {
                                     <input
                                         type="file"
                                         accept="image/*"
+                                        id="employee-image-upload"
+                                        name="employee_image"
+                                        aria-label="Upload employee image"
                                         className="hidden"
                                         onChange={handleImageUpload}
                                         disabled={uploading}

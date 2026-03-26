@@ -734,6 +734,8 @@ export const ServicesShowcaseSection = () => {
                                         <label className="flex items-center gap-3 cursor-pointer">
                                             <input
                                                 type="checkbox"
+                                                name="is_popular"
+                                                aria-label="Mark as popular"
                                                 checked={form.is_popular}
                                                 onChange={e => setForm({ ...form, is_popular: e.target.checked })}
                                                 className="w-5 h-5 rounded border-white/10 bg-white/5 text-primary focus:ring-primary"
@@ -747,6 +749,8 @@ export const ServicesShowcaseSection = () => {
                                         <label className="flex items-center gap-3 cursor-pointer">
                                             <input
                                                 type="checkbox"
+                                                name="is_active"
+                                                aria-label="Active (visible on homepage)"
                                                 checked={form.is_active}
                                                 onChange={e => setForm({ ...form, is_active: e.target.checked })}
                                                 className="w-5 h-5 rounded border-white/10 bg-white/5 text-primary focus:ring-primary"

@@ -454,6 +454,9 @@ export const PortfolioFrontSection = () => {
                                             ref={fileInputRef}
                                             type="file"
                                             accept="image/*"
+                                            id="portfolio-cover-upload"
+                                            name="cover_image"
+                                            aria-label="Upload project cover image"
                                             onChange={handleImageUpload}
                                             className="hidden"
                                         />

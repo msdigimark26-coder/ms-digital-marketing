@@ -3,6 +3,18 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(({ className, ...props }, ref) => {
+  const generatedId = React.useId();
+  const resolvedId = props.id ?? generatedId;
+  const needsAriaLabel =
+    props["aria-label"] == null &&
+    props["aria-labelledby"] == null &&
+    props.id == null;
+  const resolvedAriaLabel = needsAriaLabel
+    ? (typeof props.placeholder === "string" && props.placeholder.trim()
+        ? props.placeholder
+        : props.name || "Text field")
+    : props["aria-label"];
+
   return (
     <textarea
       className={cn(
@@ -11,6 +23,8 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttribu
       )}
       ref={ref}
       {...props}
+      id={resolvedId}
+      aria-label={resolvedAriaLabel}
     />
   );
 });

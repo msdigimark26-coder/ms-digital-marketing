@@ -151,6 +151,9 @@ export const ATSFilters = ({ onFilterChange }: ATSFiltersProps) => {
             <label className="flex items-center gap-2 cursor-pointer">
                 <input
                     type="checkbox"
+                    id="ats-starred-only"
+                    name="starred_only"
+                    aria-label="Starred applications only"
                     checked={filters.starred}
                     onChange={(e) => updateFilters({ starred: e.target.checked })}
                     className="w-4 h-4 rounded border-white/10 bg-black/40 text-purple-600 focus:ring-purple-500"
@@ -273,6 +276,9 @@ export const NotesDialog = ({
                     </Select>
 
                     <textarea
+                        id="ats-note"
+                        name="note"
+                        aria-label="Application note"
                         value={newNote}
                         onChange={(e) => setNewNote(e.target.value)}
                         placeholder="Write your note here..."

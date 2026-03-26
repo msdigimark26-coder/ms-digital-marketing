@@ -1,0 +1,74 @@
+.portfolio-carousel-3d {
+  position: relative;
+  isolation: isolate;
+  contain: layout paint;
+  content-visibility: auto;
+}
+
+.portfolio-carousel-3d .scene,
+.portfolio-carousel-3d .a3d {
+  display: grid;
+}
+
+.portfolio-carousel-3d .scene {
+  overflow: hidden;
+  perspective: 35em;
+  mask: linear-gradient(90deg, #0000, red 20% 80%, #0000);
+  min-height: 28rem;
+  padding: 1rem 0 2rem;
+  contain: paint;
+}
+
+.portfolio-carousel-3d .a3d {
+  place-self: center;
+  transform-style: preserve-3d;
+  animation: portfolio-carousel-ry 32s linear infinite;
+  animation-play-state: paused;
+  will-change: transform;
+}
+
+.portfolio-carousel-3d[data-active="true"] .a3d {
+  animation-play-state: running;
+}
+
+@keyframes portfolio-carousel-ry {
+  to {
+    rotate: y 1turn;
+  }
+}
+
+.portfolio-carousel-3d .card {
+  --w: 19em;
+  --ba: calc(1turn / var(--n));
+  grid-area: 1 / 1;
+  width: var(--w);
+  aspect-ratio: 7 / 10;
+  object-fit: cover;
+  border-radius: 1.5em;
+  backface-visibility: hidden;
+  transform:
+    rotateY(calc(var(--i) * var(--ba)))
+    translateZ(calc(-1 * (.5 * var(--w) + .5em) / tan(.5 * var(--ba))));
+  box-shadow:
+    0 22px 50px rgba(0, 0, 0, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+  transform-style: preserve-3d;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portfolio-carousel-3d .a3d {
+    animation-duration: 128s;
+  }
+}
+
+@media (max-width: 768px) {
+  .portfolio-carousel-3d .scene {
+    min-height: 20rem;
+    padding: 0.5rem 0 1.25rem;
+  }
+
+  .portfolio-carousel-3d .card {
+    --w: 13em;
+    border-radius: 1em;
+  }
+}

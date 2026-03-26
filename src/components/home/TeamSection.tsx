@@ -360,20 +360,31 @@ export const TeamSection = ({ showHeader = true }: TeamSectionProps) => {
                     )}
                   </div>
                   {/* Content Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex items-end">
-                    <div
-                      className="p-4 sm:p-6 md:p-12 w-full text-white cursor-pointer"
-                      onClick={() => setSelectedMember(member)}
-                      onKeyDown={(e) => e.key === "Enter" && setSelectedMember(member)}
-                      role="button"
-                      tabIndex={0}
-                      aria-label={`Open details for ${member.name}`}
-                    >
-                      <h3 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2">{member.name}</h3>
-                      <p className="text-sm sm:text-base md:text-xl lg:text-2xl text-primary mb-3 sm:mb-4 font-semibold">
-                        {member.title}
-                      </p>
-                      <p className="text-xs sm:text-sm md:text-base text-gray-200 max-w-2xl line-clamp-2 sm:line-clamp-3">{member.description}</p>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex items-end pb-32 sm:pb-36 lg:pb-32">
+                    <div className="p-4 sm:p-6 md:p-12 w-full text-white pointer-events-auto">
+                      <div
+                        className="cursor-pointer"
+                        onClick={() => setSelectedMember(member)}
+                        onKeyDown={(e) => e.key === "Enter" && setSelectedMember(member)}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Open details for ${member.name}`}
+                      >
+                        <h3 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2">{member.name}</h3>
+                        <p className="text-sm sm:text-base md:text-xl lg:text-2xl text-primary mb-3 sm:mb-4 font-semibold">
+                          {member.title}
+                        </p>
+                        <p className="text-xs sm:text-sm md:text-base text-gray-200 max-w-2xl line-clamp-2 sm:line-clamp-3 mb-6">{member.description}</p>
+                      </div>
+                      <a
+                        href="/Employe /index.html"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center px-8 py-3 border-2 border-primary text-primary hover:bg-primary hover:text-black rounded-full font-bold text-sm sm:text-base uppercase tracking-wider transition-all duration-300 shadow-[0_0_20px_rgba(255,210,48,0.2)] hover:shadow-[0_0_30px_rgba(255,210,48,0.4)]"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Full Bio
+                      </a>
                     </div>
                   </div>
                 </div>

@@ -411,11 +411,17 @@ export const JobDetail = () => {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                                            <label
+                                                htmlFor="cover-letter"
+                                                className="text-xs font-bold uppercase tracking-wider text-slate-400"
+                                            >
                                                 Cover Letter (Optional)
                                             </label>
                                             <textarea
+                                                id="cover-letter"
+                                                name="cover_letter"
                                                 rows={4}
+                                                aria-label="Cover letter"
                                                 placeholder="Tell us why you're a great fit..."
                                                 value={formData.cover_letter}
                                                 onChange={(e) =>

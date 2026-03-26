@@ -384,6 +384,9 @@ export const ReelsSection = () => {
                                         <input
                                             type="file"
                                             ref={fileInputRef}
+                                            id="reel-video"
+                                            name="video"
+                                            aria-label="Upload reel video"
                                             className="hidden"
                                             accept="video/*"
                                             onChange={handleVideoUpload}

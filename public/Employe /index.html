@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MS DIGIMARK Crew Scroll</title>
+  <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png" />
+  <link rel="stylesheet" href="./styles.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+        "lil-gui": "https://unpkg.com/lil-gui@0.19.1/dist/lil-gui.esm.min.js",
+        "qrcode": "https://unpkg.com/qrcode-generator@1.4.4/qrcode.js"
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/qrcode-generator@1.4.4/qrcode.js"></script>
+</head>
+<body>
+  <div class="motto">எண்ணம் போல் வழக்கை எண்ணம் போல் தான் வழக்கை!</div>
+  <canvas id="glCanvas"></canvas>
+  <canvas id="fire-overlay" aria-hidden="true"></canvas>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+
+  <a
+    href="https://linktr.ee/MS_Digimark?utm_source=linktree_profile_share&amp;ltsid=3ac17aa9-833b-4e8f-aa3b-16d1a28bf0fa"
+    target="_blank"
+    rel="noopener noreferrer"
+    class="qr-cube-shell"
+    aria-label="Open MS Digimark Linktree"
+  >
+    <div class="qr-cube-canvas"></div>
+    <span class="qr-scan-label">Scan Me</span>
+  </a>
+
+  <div class="qr-scroll-prompt">Scroll Down For Scan Qr</div>
+
+  <a href="/about" class="back-btn">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+    <span>Back to About</span>
+  </a>
+  <section class="profiles profiles--corner" aria-label="Employee quick profile">
+    <div class="avatar" style="--bg-img:url('./asserts/MS DIGIMARK BACKGROUND.png')">
+      <div class="avatar-img">
+        <img src="./Profile corner/66.png" alt="Sai Sankeeth">
+      </div>
+      <p>Sai Sankeeth</p>
+    </div>
+
+    <div class="avatar" style="--bg-img:url('./asserts/MS DIGIMARK BACKGROUND.png')">
+      <div class="avatar-img">
+        <img src="./Profile corner/56.png" alt="Britto">
+      </div>
+      <p>Britto</p>
+    </div>
+
+    <div class="avatar" style="--bg-img:url('./asserts/MS DIGIMARK BACKGROUND.png')">
+      <div class="avatar-img">
+        <img src="./Profile corner/61.png" alt="Arivalagan">
+      </div>
+      <p>Arivalagan</p>
+    </div>
+
+    <div class="avatar" style="--bg-img:url('./asserts/MS DIGIMARK BACKGROUND.png')">
+      <div class="avatar-img">
+        <img src="./Profile corner/60.png" alt="Abdul Razaak">
+      </div>
+      <p>Abdul Razaak</p>
+    </div>
+
+    <div class="avatar" style="--bg-img:url('./asserts/MS DIGIMARK BACKGROUND.png')">
+      <div class="avatar-img">
+        <img src="./Profile corner/59.png" alt="Sangeeth">
+      </div>
+      <p>Sangeeth</p>
+    </div>
+
+    <div class="avatar" style="--bg-img:url('./asserts/MS DIGIMARK BACKGROUND.png')">
+      <div class="avatar-img">
+        <img src="./Profile corner/57.png" alt="Baptis">
+      </div>
+      <p>Baptis</p>
+    </div>
+
+    <div class="avatar" style="--bg-img:url('./asserts/MS DIGIMARK BACKGROUND.png')">
+      <div class="avatar-img">
+        <img src="./Profile corner/62.png" alt="Fayeeth">
+      </div>
+      <p>Fayeeth</p>
+    </div>
+
+    <div class="avatar" style="--bg-img:url('./asserts/MS DIGIMARK BACKGROUND.png')">
+      <div class="avatar-img">
+        <img src="./Profile corner/63.png" alt="Rahulji">
+      </div>
+      <p>Rahulji</p>
+    </div>
+
+    <div class="avatar" style="--bg-img:url('./asserts/MS DIGIMARK BACKGROUND.png')">
+      <div class="avatar-img">
+        <img src="./Profile corner/58.png" alt="Joel Kevin">
+      </div>
+      <p>Joel Kevin</p>
+    </div>
+
+    <div class="avatar" style="--bg-img:url('./asserts/MS DIGIMARK BACKGROUND.png')">
+      <div class="avatar-img">
+        <img src="./Profile corner/64.png" alt="Anish">
+      </div>
+      <p>Anish</p>
+    </div>
+  </section>
+
+  <div class="snap-section"></div>
+  <div class="snap-section"></div>
+  <div class="snap-section"></div>
+  <div class="snap-section"></div>
+  <div class="snap-section"></div>
+  <div class="snap-section"></div>
+  <div class="snap-section"></div>
+  <div class="snap-section"></div>
+  <div class="snap-section"></div>
+  <div class="snap-section"></div>
+  <div class="snap-section"></div>
+  <div class="snap-section"></div>
+  <div class="snap-section"></div>
+
+  <div class="logo">
+    <img src="./asserts/MS.png">
+  </div>
+
+  <div class="names">
+    <h2>SAI SANKEET</h2>
+    <h2>BRITTO</h2>
+    <h2>ARIVALAGAN</h2>
+    <h2>ABDUL RAZAAK</h2>
+    <h2>SANGEETH</h2>
+    <h2>BAPTIS</h2>
+    <h2>FAYEETH</h2>
+    <h2>RAHULJI</h2>
+    <h2>JOEL KEVIN</h2>
+    <h2>ANISH</h2>
+  </div>
+
+  <div class="wrapper">
+    <div class="character">
+      <a href="https://www.linkedin.com/in/ms-saisankeet/" target="_blank" rel="noopener noreferrer">
+        <img src="./employe(1)/4.png">
+      </a>
+      <div class="data">
+        <h3>Sai Sankeeth</h3>
+        <div>
+          <label>Role:</label>
+          <p>Digital Marketing Head</p>
+
+          <label>Skills:</label>
+          <p>SEO•Content Marketing•Social Media Marketing•PPC</p>
+
+          <label>Known for:</label>
+          <p>“Turning strategies into scalable growth”</p>
+        </div>
+        <p class="notes">A results-driven strategist who blends creativity with data. Leads campaigns that drive visibility, engagement, and revenue.
+
+</p>
+        <span class="card-signature">Sai Sankeeth</span>
+      </div></div>
+
+    <div class="character">
+      <a href="https://www.linkedin.com/in/britto-a-927721266/" target="_blank" rel="noopener noreferrer">
+        <img src="./employe(1)/1.png">
+      </a>
+      <div class="data">
+        <h3>Britto</h3>
+        <div>
+          <label>Role : </label>
+          <p>Web Developer & UI/UX Designer</p>
+          <label>Skills:</label>
+          <p>Web Development•UI/UX Design•Video Editing•Graphic Designer</p>
+          <label>Known for:</label>
+          <p>“Design.Code.Create.”</p>
+        </div>
+        <p class="notes">Multi-disciplinary digital expert with strong skills in frontend & backend development, UI/UX design, and video editing.
+Passionate about creating seamless digital experiences, high-performing websites, and visually compelling content.
+        </p>
+        <span class="card-signature">Arul Britto</span>
+      </div></div>
+
+    <div class="character">
+      <a href="https://www.linkedin.com/in/arivalagan-a-258804266/" target="_blank" rel="noopener noreferrer">
+        <img src="./employe(1)/11.png">
+      </a>
+      <div class="data">
+        <h3>Arivalagan</h3>
+        <div>
+          <label>Role:</label>
+          <p>UI/UX Designer</p>
+          <label>Skills:</label>
+          <p>UI/UX•Graphic Designer•Editor•Videography</p>
+          <label>Known for: </label>
+          <p>“Crafting seamless and intuitive user experiences”</p>
+        </div>
+        <p class="notes">A creative problem-solver who designs user-centric digital experiences.Focused on simplicity, usability, and impactful design that enhances engagement and conversion.</p>
+        <span class="card-signature">Arivalagan</span>
+      </div></div>
+
+    <div class="character">
+      <a href="https://www.linkedin.com/in/abdulrazaak-s-215a90266/" target="_blank" rel="noopener noreferrer">
+        <img src="./employe(1)/5.png">
+      </a>
+      <div class="data">
+        <h3>Abdul Razaak</h3>
+        <div>
+          <label>Role:</label>
+          <p>Chief Engineer</p>
+          <label>Skills:</label>
+          <p>Chief Engineer</p>
+          <label>Known for: </label>
+          <p>“I canna change the laws of physics!”</p>
+        </div>
+        <p class="notes">Brilliant engineer, resourceful, stubbornly optimistic about impossible repairs, quietly heroic.</p>
+        <span class="card-signature">Abdul Razaak</span>
+      </div></div>
+
+    <div class="character">
+      <a href="https://www.linkedin.com/in/sangeeth-d-19a349357/" target="_blank" rel="noopener noreferrer">
+        <img src="./employe(1)/8.png">
+      </a>
+      <div class="data">
+        <h3>Sangeeth</h3>
+        <div>
+          <label>Role: </label>
+          <p>Communications Officer</p>
+          <label>Skills:</label>
+          <p>Communications Officer</p>
+          <label>Known for: </label>
+          <p>Multilingual communications mastery</p>
+        </div>
+        <p class="notes">Intelligent, poised, confident, culturally aware, trailblazing representation.</p>
+        <span class="card-signature">Sangeeth</span>
+      </div></div>
+
+    <div class="character">
+      <a href="https://www.linkedin.com/in/baptis-v-r-6562b6393/" target="_blank" rel="noopener noreferrer">
+        <img src="./employe(1)/7.png">
+      </a>
+      <div class="data">
+        <h3>Baptis</h3>
+        <div>
+          <label>Role: </label>
+          <p>Helmsman</p>
+          <label>Skills:</label>
+          <p>Helmsman</p>
+          <label>Known for: </label>
+          <p>Sword fighting in “The Naked Time”</p>
+        </div>
+        <p class="notes">Calm under pressure, skilled pilot, disciplined, occasionally playful edge.</p>
+        <span class="card-signature">Baptis</span>
+      </div></div>
+     <div class="character">
+      <a href="https://www.linkedin.com/in/fayeeth172135?utm_source=share_via&utm_content=profile&utm_medium=member_android" target="_blank" rel="noopener noreferrer">
+      <img src="./employe(1)/Fayeeth(1).png">
+      </a>
+      <div class="data">
+        <h3>Fayeeth</h3>
+        <div>
+          <label>Role:</label>
+          <p>Dummy</p>
+
+          <label>Skills:</label>
+          <p>Dummy</p>
+
+          <label>Known for:</label>
+          <p>Dummy</p>
+        </div>
+        <p class="notes">Dummy</p>
+        <span class="card-signature">Fayeeth</span>
+      </div></div>
+    <div class="character">
+      <a href="https://www.linkedin.com/in/rahulji-rajakumar-0b3871358/" target="_blank" rel="noopener noreferrer">
+      <img src="./employe(1)/Rahulji.png">
+      </a>
+      <div class="data">
+        <h3>Rahulji</h3>
+        <div>
+          <label>Role:</label>
+          <p>Captain of the USS Enterprise</p>
+
+          <label>Skills:</label>
+          <p>Captain of the USS Enterprise</p>
+
+          <label>Known for:</label>
+          <p>“Beam me up, Scotty.”</p>
+        </div>
+        <p class="notes">Bold, charismatic, impulsive, strategic thinker, morally driven, thrives under pressure.</p>
+        <span class="card-signature">Rahulji</span>
+      </div></div>
+
+    <div class="character">
+      <a href="https://www.linkedin.com/in/joel-kevin-j-85384936a/" target="_blank" rel="noopener noreferrer">
+      <img src="./employe(1)/6.png">
+      </a>
+      <div class="data">
+        <h3>Joel Kevin</h3>
+        <div>
+          <label>Role: </label>
+          <p>Navigator</p>
+          <label>Skills:</label>
+          <p>Navigator</p>
+          <label>Known for: </label>
+          <p>Claiming everything was “invented in Russia.”</p>
+        </div>
+        <p class="notes">Eager, youthful, patriotic, ambitious, quick-thinking.</p>
+        <span class="card-signature">Joel Kevin</span>
+      </div></div>
+
+
+    <div class="character">
+      <img src="./employe(1)/9.png">
+      <div class="data">
+        <h3>Anish</h3>
+        <div>
+          <label>Role: </label>
+          <p>Navigator</p>
+          <label>Skills:</label>
+          <p>Navigator</p>
+          <label>Known for: </label>
+          <p>Claiming everything was “invented in Russia.”</p>
+        </div>
+        <p class="notes">Eager, youthful, patriotic, ambitious, quick-thinking.</p>
+        <span class="card-signature">Anish</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="visit-bio">
+    <h1>thank For <br> Visit Our Bio</h1>
+  </div>
+
+  <div class="qr-full-view-copy">
+    <p>Full View QR Code</p>
+  </div>
+
+  <div class="mouse">
+    <img src="./employe(1)/m.png" alt="MS Logo" style="width: 100%; height: 100%; object-fit: contain;"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+  <script type="x-shader/x-vertex" id="vertShader">
+    precision mediump float;
+
+    varying vec2 vUv;
+    attribute vec2 a_position;
+
+    void main() {
+      vUv = a_position;
+      gl_Position = vec4(a_position, 0.0, 1.0);
+    }
+  </script>
+
+  <script type="x-shader/x-fragment" id="fragShader">
+    precision mediump float;
+
+    varying vec2 vUv;
+    uniform vec2 u_resolution;
+    uniform float u_progress;
+    uniform float u_time;
+    uniform sampler2D u_text;
+
+    float rand(vec2 n) {
+      return fract(cos(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
+    }
+
+    float noise(vec2 n) {
+      const vec2 d = vec2(0.0, 1.0);
+      vec2 b = floor(n), f = smoothstep(vec2(0.0), vec2(1.0), fract(n));
+      return mix(mix(rand(b), rand(b + d.yx), f.x), mix(rand(b + d.xy), rand(b + d.yy), f.x), f.y);
+    }
+
+    float fbm(vec2 n) {
+      float total = 0.0;
+      float amplitude = 0.4;
+      for (int i = 0; i < 4; i++) {
+        total += noise(n) * amplitude;
+        n += n;
+        amplitude *= 0.6;
+      }
+      return total;
+    }
+
+    void main() {
+      vec2 uv = vUv;
+      uv.x *= min(1.0, u_resolution.x / u_resolution.y);
+      uv.y *= min(1.0, u_resolution.y / u_resolution.x);
+
+      vec2 screenUv = vUv * 0.5 + 0.5;
+      screenUv.y = 1.0 - screenUv.y;
+
+      vec4 textColor = texture2D(u_text, screenUv);
+      vec3 color = textColor.rgb;
+
+      float mainNoise = 1.0 - fbm(0.75 * uv + 10.0 - vec2(0.3, 0.9 * u_progress));
+      float paperDarkness = smoothstep(mainNoise - 0.1, mainNoise, u_progress);
+      color -= vec3(0.92, 0.84, 0.72) * paperDarkness;
+
+      vec3 fireColor = fbm(6.0 * uv - vec2(0.0, 0.005 * u_time)) * vec3(5.8, 1.45, 0.0);
+      float showFire = smoothstep(0.4, 0.9, fbm(10.0 * uv + 2.0 - vec2(0.0, 0.005 * u_time)));
+      showFire += smoothstep(0.7, 0.8, fbm(0.5 * uv + 5.0 - vec2(0.0, 0.001 * u_time)));
+
+      float fireBorder = 0.02 * showFire;
+      float fireEdge = smoothstep(mainNoise - fireBorder, mainNoise - 0.5 * fireBorder, u_progress);
+      fireEdge *= (1.0 - smoothstep(mainNoise - 0.5 * fireBorder, mainNoise, u_progress));
+      color += fireColor * fireEdge;
+
+      float opacity = 1.0 - smoothstep(mainNoise - 0.0005, mainNoise, u_progress);
+      gl_FragColor = vec4(color, opacity * textColor.a);
+    }
+  </script>
+
+  <script src="./security.js"></script>
+  <script src="./winter-fire.js"></script>
+  <script src="./burning-page.js"></script>
+  <script type="module" src="./qr-cube.js"></script>
+</body>
+</html>

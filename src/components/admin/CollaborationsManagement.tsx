@@ -367,6 +367,9 @@ export const CollaborationsManagementSection = () => {
                                     ref={fileInputRef}
                                     type="file"
                                     accept="image/*"
+                                    id="collab-logo-upload"
+                                    name="logo"
+                                    aria-label="Upload collaboration logo"
                                     className="hidden"
                                     onChange={(e) => {
                                         const file = e.target.files?.[0];

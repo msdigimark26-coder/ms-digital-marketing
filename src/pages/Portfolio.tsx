@@ -8,6 +8,7 @@ import { supabase, isConfigured as isSupabaseConfigured } from "@/integrations/s
 import { isServicesSupabaseConfigured, servicesSupabase } from "@/integrations/supabase/servicesClient";
 import { GridSkeleton, PortfolioCardSkeleton } from "@/components/ui/LoadingSkeletons";
 import { Card3DTilt } from "@/components/ui/Card3DTilt";
+import { PortfolioCarousel3D } from "@/components/portfolio/PortfolioCarousel3D";
 
 // Type definition for projects
 interface Project {
@@ -262,6 +263,8 @@ const Portfolio = () => {
                 <p className="text-slate-400">Try selecting a different category.</p>
               </div>
             )}
+
+            <PortfolioCarousel3D />
 
             {/* CTA Section */}
             <div className="mt-32 text-center">

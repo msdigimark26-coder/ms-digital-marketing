@@ -263,6 +263,9 @@ export const TestimonialsSection = () => {
                                 <input
                                     type="file"
                                     accept="image/*"
+                                    id="testimonial-image-upload"
+                                    name="testimonial_image"
+                                    aria-label="Upload testimonial image"
                                     className="hidden"
                                     onChange={handleImageUpload}
                                     disabled={uploading}

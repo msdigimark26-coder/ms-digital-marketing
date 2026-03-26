@@ -4,6 +4,18 @@ import { cn } from "@/lib/utils";
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
   ({ className, type, ...props }, ref) => {
+    const generatedId = React.useId();
+    const resolvedId = props.id ?? generatedId;
+    const needsAriaLabel =
+      props["aria-label"] == null &&
+      props["aria-labelledby"] == null &&
+      props.id == null;
+    const resolvedAriaLabel = needsAriaLabel
+      ? (typeof props.placeholder === "string" && props.placeholder.trim()
+          ? props.placeholder
+          : props.name || "Input field")
+      : props["aria-label"];
+
     return (
       <input
         type={type}
@@ -13,6 +25,8 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
         )}
         ref={ref}
         {...props}
+        id={resolvedId}
+        aria-label={resolvedAriaLabel}
       />
     );
   },
